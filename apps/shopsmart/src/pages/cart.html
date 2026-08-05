@@ -1,6 +1,5 @@
 <!-- TITLE: Shopping Cart - ShopSmart -->
 <!-- BODY_CLASS: page-cart -->
-<!-- VIEWPORT_EXTRA: , user-scalable=no -->
 <main id="main-content" class="page-content">
   <h1>Your cart</h1>
   <div class="table-wrap">
@@ -19,7 +18,7 @@
         <tr>
           <td>
             <div style="display:flex;align-items:center;gap:12px;">
-              <img src="assets/img/products/sku-1001.svg" style="width:56px;height:56px;object-fit:cover;border-radius:6px;">
+              <img src="assets/img/products/sku-1001.svg" alt="Wireless Mouse" style="width:56px;height:56px;object-fit:cover;border-radius:6px;">
               <span>Wireless Mouse</span>
             </div>
           </td>
@@ -28,11 +27,12 @@
             <div style="display:flex;align-items:center;">
               <button type="button" class="btn-icon small-target" data-qty-decrease="qty1">&minus;</button>
               <button type="button" class="btn-icon small-target" data-qty-increase="qty1">+</button>
+              <label for="qty1" class="visually-hidden">Quantity</label>
               <input type="number" id="qty1" value="1" min="1" style="width:44px;text-align:center;margin-left:8px;">
             </div>
           </td>
           <td>$24.99</td>
-          <td><button type="button" class="btn-icon small-target"><span aria-hidden="true">&times;</span></button></td>
+          <td><button type="button" class="btn-icon small-target" aria-label="Remove Wireless Mouse from cart"><span aria-hidden="true">&times;</span></button></td>
         </tr>
         <tr>
           <td>
