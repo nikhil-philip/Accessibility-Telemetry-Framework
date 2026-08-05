@@ -17,7 +17,7 @@
     </select>
 
     <div class="dropdown">
-      <button type="button" class="dropdown-trigger" role="combobox" aria-controls="sortMenu" aria-label="Sort products" data-dropdown-trigger="sortMenu">
+      <button type="button" class="dropdown-trigger" role="combobox" aria-controls="sortMenu" aria-label="Sort products" aria-expanded="false" data-dropdown-trigger="sortMenu">
         Sort: <span data-dropdown-label>Featured</span>
       </button>
       <div class="dropdown-menu" id="sortMenu" role="listbox" aria-label="Sort options">
@@ -28,21 +28,21 @@
       </div>
     </div>
 
-    <span role="checkbox" tabindex="0" class="checkbox-row" id="inStockToggle" style="cursor:pointer;">
+    <span role="checkbox" aria-checked="false" tabindex="0" class="checkbox-row" id="inStockToggle" style="cursor:pointer;">
       <span aria-hidden="true">&#9744;</span> In stock only
     </span>
 
     <button type="button" class="btn-icon" id="viewToggleBtn" aria-label="Toggle grid or list view"><span aria-hidden="true">&#9638;</span></button>
   </div>
 
-  <h3>Filter results</h3>
+  <h2>Filter results</h2>
   <p class="text-muted">Showing 8 of 8 products</p>
 
   <div class="product-grid">
     <button type="button" class="product-card" onclick="window.location.href='product-details.html?sku=SKU-1001'">
       <img src="assets/img/products/sku-1001.svg" alt="Wireless Mouse">
       <div class="product-card-body">
-        <h4>Wireless Mouse</h4>
+        <h3>Wireless Mouse</h3>
         <div class="product-card-price">$24.99</div>
         <div class="product-card-actions">
           <a href="product-details.html?sku=SKU-1001" class="btn btn-secondary">Read reviews</a>
@@ -53,7 +53,7 @@
     <div class="product-card">
       <a href="product-details.html?sku=SKU-1002" aria-label="Bluetooth Speaker"><img src="assets/img/products/sku-1002.svg" alt="Bluetooth Speaker"></a>
       <div class="product-card-body">
-        <h4><a href="product-details.html?sku=SKU-1002">Bluetooth Speaker</a></h4>
+        <h3><a href="product-details.html?sku=SKU-1002">Bluetooth Speaker</a></h3>
         <div class="product-card-price">$49.99</div>
         <div class="product-card-actions">
           <button type="button" class="btn btn-primary">Add to cart</button>
@@ -65,7 +65,7 @@
     <div class="product-card">
       <a href="product-details.html?sku=SKU-1003"><img src="assets/img/products/sku-1003.svg" alt="Trail Running Shoes"></a>
       <div class="product-card-body">
-        <h4><a href="product-details.html?sku=SKU-1003">Trail Running Shoes</a></h4>
+        <h3><a href="product-details.html?sku=SKU-1003">Trail Running Shoes</a></h3>
         <div class="product-card-price" id="price-label">$79.99</div>
         <div class="product-card-actions">
           <button type="button" class="btn btn-primary" aria-describedby="price-label">Add to cart</button>
@@ -76,7 +76,7 @@
     <div class="product-card">
       <a href="product-details.html?sku=SKU-1004"><img src="assets/img/products/sku-1004.svg" alt="Yoga Mat"></a>
       <div class="product-card-body">
-        <h4><a href="product-details.html?sku=SKU-1004">Yoga Mat</a></h4>
+        <h3><a href="product-details.html?sku=SKU-1004">Yoga Mat</a></h3>
         <div class="product-card-price" id="price-label">$34.99</div>
         <div class="product-card-actions">
           <button type="button" class="btn btn-primary">Add to cart</button>
@@ -87,7 +87,7 @@
     <div class="product-card">
       <a href="product-details.html?sku=SKU-1005"><img src="assets/img/products/sku-1005.svg" alt="Ceramic Mug Set"></a>
       <div class="product-card-body">
-        <h4><a href="product-details.html?sku=SKU-1005">Ceramic Mug Set</a></h4>
+        <h3><a href="product-details.html?sku=SKU-1005">Ceramic Mug Set</a></h3>
         <div class="product-card-price">$19.99</div>
         <div class="product-card-actions">
           <button type="button" class="btn btn-primary">Add to cart</button>
@@ -98,7 +98,7 @@
     <div class="product-card">
       <a href="product-details.html?sku=SKU-1006"><img src="assets/img/products/sku-1006.svg" alt="Desk Lamp"></a>
       <div class="product-card-body">
-        <h4><a href="product-details.html?sku=SKU-1006">Desk Lamp</a></h4>
+        <h3><a href="product-details.html?sku=SKU-1006">Desk Lamp</a></h3>
         <div class="product-card-price">$29.99</div>
         <div class="product-card-actions">
           <button type="button" class="btn btn-primary">Add to cart</button>
@@ -109,7 +109,7 @@
     <div class="product-card">
       <a href="product-details.html?sku=SKU-1007"><img src="assets/img/products/sku-1007.svg" alt="Canvas Backpack"></a>
       <div class="product-card-body">
-        <h4><a href="product-details.html?sku=SKU-1007">Canvas Backpack</a></h4>
+        <h3><a href="product-details.html?sku=SKU-1007">Canvas Backpack</a></h3>
         <div class="product-card-price">$59.99</div>
         <div class="product-card-actions">
           <button type="button" class="btn btn-primary">Add to cart</button>
@@ -120,7 +120,7 @@
     <div class="product-card">
       <a href="product-details.html?sku=SKU-1008"><img src="assets/img/products/sku-1008.svg" alt="Steel Water Bottle"></a>
       <div class="product-card-body">
-        <h4><a href="product-details.html?sku=SKU-1008">Steel Water Bottle</a></h4>
+        <h3><a href="product-details.html?sku=SKU-1008">Steel Water Bottle</a></h3>
         <div class="product-card-price">$14.99</div>
         <div class="product-card-actions">
           <button type="button" class="btn btn-primary">Add to cart</button>
