@@ -224,12 +224,31 @@ main, .page-content {
   position: absolute;
   top: 10px;
   left: 10px;
-  background: var(--danger);
+  background: #e8a99f;
   color: #fff;
   font-size: 11px;
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 999px;
+}
+.wishlist-heart {
+  background: none;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--danger);
+}
+.wishlist-heart.active { color: var(--danger); }
+.swatch-row { display: flex; }
+.swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  outline: 1px solid var(--line);
+  cursor: pointer;
+  padding: 0;
 }
 
 /* ---------- Tables ---------- */

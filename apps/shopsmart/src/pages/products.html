@@ -40,12 +40,18 @@
 
   <div class="product-grid">
     <button type="button" class="product-card" onclick="window.location.href='product-details.html?sku=SKU-1001'">
+      <span class="sale-badge">Sale</span>
       <img src="assets/img/products/sku-1001.svg" alt="Wireless Mouse">
       <div class="product-card-body">
         <h3>Wireless Mouse</h3>
         <div class="product-card-price">$24.99</div>
         <div class="product-card-actions">
           <a href="product-details.html?sku=SKU-1001" class="btn btn-secondary">Read reviews</a>
+          <a href="#" class="wishlist-heart" data-wishlist-toggle aria-label="Add Wireless Mouse to wishlist"><span aria-hidden="true">&#9825;</span></a>
+        </div>
+        <div class="swatch-row">
+          <button type="button" class="swatch" style="background:#2b2b2b;" aria-label="Black"></button>
+          <button type="button" class="swatch" style="background:#c9ae6a;" aria-label="Gold"></button>
         </div>
       </div>
     </button>
@@ -73,16 +79,17 @@
       </div>
     </div>
 
-    <div class="product-card">
-      <a href="product-details.html?sku=SKU-1004"><img src="assets/img/products/sku-1004.svg" alt="Yoga Mat"></a>
+    <button type="button" class="product-card" onclick="window.location.href='product-details.html?sku=SKU-1004'">
+      <img src="assets/img/products/sku-1004.svg" alt="Yoga Mat">
       <div class="product-card-body">
-        <h3><a href="product-details.html?sku=SKU-1004">Yoga Mat</a></h3>
+        <h3>Yoga Mat</h3>
         <div class="product-card-price" id="price-label">$34.99</div>
         <div class="product-card-actions">
-          <button type="button" class="btn btn-primary">Add to cart</button>
+          <a href="product-details.html?sku=SKU-1004" class="btn btn-secondary">View details</a>
+          <a href="#" class="wishlist-heart" data-wishlist-toggle aria-label="Add Yoga Mat to wishlist"><span aria-hidden="true">&#9825;</span></a>
         </div>
       </div>
-    </div>
+    </button>
 
     <div class="product-card">
       <a href="product-details.html?sku=SKU-1005"><img src="assets/img/products/sku-1005.svg" alt="Ceramic Mug Set"></a>

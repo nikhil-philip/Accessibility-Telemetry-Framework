@@ -2,7 +2,8 @@
 <!-- BODY_CLASS: page-product-details -->
 <main id="main-content" class="page-content">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start;" class="pd-layout">
-    <div>
+    <div style="position:relative;">
+      <span class="sale-badge">Sale</span>
       <img src="assets/img/products/sku-1001.svg" alt="Wireless Mouse" style="border-radius:10px;">
       <div class="scroll-strip" id="gallery-strip">
         <img src="assets/img/products/sku-1001.svg" alt="Wireless Mouse, front view">
@@ -25,7 +26,29 @@
         </div>
       </div>
 
+      <div class="field">
+        <span class="text-muted" style="font-size:13.5px;font-weight:600;">Color</span>
+        <div class="swatch-row">
+          <button type="button" class="swatch" style="background:#2b2b2b;" aria-label="Black"></button>
+          <button type="button" class="swatch" style="background:#c9ae6a;" aria-label="Gold"></button>
+        </div>
+      </div>
+
       <button type="button" class="btn btn-primary">Add to cart</button>
+      <a href="#" class="wishlist-heart" data-wishlist-toggle aria-label="Add Wireless Mouse to wishlist" style="margin-left:10px;"><span aria-hidden="true">&#9825;</span></a>
+      <button type="button" class="btn btn-secondary" data-modal-open="quickViewModal" style="margin-left:10px;">Quick view</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="quickViewModal">
+    <div class="modal-box" role="dialog" aria-modal="true">
+      <img src="assets/img/products/sku-1001.svg" alt="Wireless Mouse" style="border-radius:8px;margin-bottom:12px;">
+      <p style="font-weight:700;">Wireless Mouse &middot; $24.99</p>
+      <p class="text-muted">A precise, silent-click wireless mouse with a 2000 DPI sensor and a 12-month battery life.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-modal-close>Close</button>
+        <button type="button" class="btn btn-primary" data-modal-close>Add to cart</button>
+      </div>
     </div>
   </div>
 
@@ -63,16 +86,17 @@
 
   <h3>You may also like</h3>
   <div class="product-grid">
-    <div class="product-card">
-      <a href="product-details.html?sku=SKU-1006" aria-label="Desk Lamp"><img src="assets/img/products/sku-1006.svg" alt=""></a>
+    <button type="button" class="product-card" onclick="window.location.href='product-details.html?sku=SKU-1006'">
+      <img src="assets/img/products/sku-1006.svg" alt="Desk Lamp">
       <div class="product-card-body">
-        <h4><a href="product-details.html?sku=SKU-1006">Desk Lamp</a></h4>
+        <h4>Desk Lamp</h4>
         <div class="product-card-price">$29.99</div>
         <div class="product-card-actions">
           <a href="product-details.html?sku=SKU-1006" class="btn-icon" aria-label="View Desk Lamp details"><span aria-hidden="true">&#128065;</span></a>
+          <a href="#" class="wishlist-heart" data-wishlist-toggle aria-label="Add Desk Lamp to wishlist"><span aria-hidden="true">&#9825;</span></a>
         </div>
       </div>
-    </div>
+    </button>
     <button type="button" class="product-card" onclick="window.location.href='product-details.html?sku=SKU-1007'">
       <img src="assets/img/products/sku-1007.svg" alt="Canvas Backpack">
       <div class="product-card-body">
@@ -80,6 +104,7 @@
         <div class="product-card-price">$59.99</div>
         <div class="product-card-actions">
           <a href="product-details.html?sku=SKU-1007" class="btn btn-secondary">Quick add</a>
+          <a href="#" class="wishlist-heart" data-wishlist-toggle aria-label="Add Canvas Backpack to wishlist"><span aria-hidden="true">&#9825;</span></a>
         </div>
       </div>
     </button>
