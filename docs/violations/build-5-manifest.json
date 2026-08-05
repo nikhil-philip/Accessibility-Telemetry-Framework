@@ -1,0 +1,57 @@
+{
+  "buildId": "build-5",
+  "gitTag": "build-5",
+  "catalogActiveInstances": 4,
+  "measuredAxeViolations": 6,
+  "note": "catalogActiveInstances is the count of hand-seeded, tracked catalog.json instances active in this build. measuredAxeViolations is the real @axe-core/playwright 4.12.1 violation count for the built app at this tag (includes a small number of untracked incidental findings documented in catalog.md, e.g. image-redundant-alt). See docs/violations/catalog.md for the reconciliation.",
+  "violations": [
+    {
+      "instanceId": "frame-title-001",
+      "axeRuleId": "frame-title",
+      "wcagCriteria": [
+        "4.1.2"
+      ],
+      "impact": "serious",
+      "page": "contact.html",
+      "elementDescription": "Embedded map <iframe> missing a title attribute",
+      "remediation": "Add a descriptive title attribute to the <iframe>.",
+      "regressionInstance": false
+    },
+    {
+      "instanceId": "target-size-003",
+      "axeRuleId": "target-size",
+      "wcagCriteria": [
+        "2.5.8"
+      ],
+      "impact": "moderate",
+      "page": "products.html",
+      "elementDescription": "Pagination button 1 of 3 is ~20x20px with zero spacing to its neighbors, below the 24x24px/24px-offset minimum",
+      "remediation": "Increase the clickable area to at least 24x24 CSS px or add 24px of spacing between pagination buttons.",
+      "regressionInstance": false
+    },
+    {
+      "instanceId": "target-size-004",
+      "axeRuleId": "target-size",
+      "wcagCriteria": [
+        "2.5.8"
+      ],
+      "impact": "moderate",
+      "page": "products.html",
+      "elementDescription": "Pagination button 2 of 3 is ~20x20px with zero spacing to its neighbors, below the 24x24px/24px-offset minimum",
+      "remediation": "Increase the clickable area to at least 24x24 CSS px or add 24px of spacing between pagination buttons.",
+      "regressionInstance": false
+    },
+    {
+      "instanceId": "target-size-005",
+      "axeRuleId": "target-size",
+      "wcagCriteria": [
+        "2.5.8"
+      ],
+      "impact": "moderate",
+      "page": "products.html",
+      "elementDescription": "Pagination button 3 of 3 is ~20x20px with zero spacing to its neighbors, below the 24x24px/24px-offset minimum",
+      "remediation": "Increase the clickable area to at least 24x24 CSS px or add 24px of spacing between pagination buttons.",
+      "regressionInstance": false
+    }
+  ]
+}
