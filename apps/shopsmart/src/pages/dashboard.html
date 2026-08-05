@@ -1,0 +1,45 @@
+<!-- TITLE: Dashboard - ShopSmart -->
+<!-- BODY_CLASS: page-dashboard -->
+<!-- LANG: none -->
+<div class="page-content">
+  <img src="assets/img/promo-banner.svg" class="promo-banner">
+
+  <h1>Welcome back, Priya</h1>
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-value">4</div>
+      <div class="stat-label text-low-contrast">Active orders</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">128</div>
+      <div class="stat-label text-muted">Reward points</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">6</div>
+      <div class="stat-label text-muted">Wishlist items</div>
+    </div>
+    <div class="stat-card">
+      <button type="button" class="btn-icon" id="refreshStatsBtn"><span aria-hidden="true">&#8635;</span></button>
+      <h3 style="margin-top:8px;">Refresh stats</h3>
+    </div>
+  </div>
+
+  <h3>Recent orders</h3>
+  <ul>
+    <li tabindex="1"><a href="profile.html">#SS-10432 &mdash; Delivered, Aug 1</a></li>
+    <li><a href="profile.html">#SS-10411 &mdash; In transit, Jul 28</a></li>
+    <li><a href="profile.html">#SS-10390 &mdash; Delivered, Jul 20</a></li>
+  </ul>
+
+  <button type="button" id="quickActionsBtn" class="btn btn-secondary">Quick actions</button>
+
+  <div class="quick-actions-panel" id="quickActionsPanel" aria-hidden="true">
+    <button type="button" data-panel-close class="btn-icon" aria-label="Close quick actions">&times;</button>
+    <h3>Quick actions</h3>
+    <ul>
+      <li><a href="products.html">Browse products</a></li>
+      <li><a href="cart.html">View cart</a></li>
+      <li><a href="profile.html">Track an order</a></li>
+    </ul>
+  </div>
+</div>

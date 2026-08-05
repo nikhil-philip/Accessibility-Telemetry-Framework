@@ -1,0 +1,83 @@
+<!-- TITLE: Your Profile - ShopSmart -->
+<!-- BODY_CLASS: page-profile -->
+<main id="main-content" class="page-content">
+  <h1>Your profile</h1>
+
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+    <img src="assets/img/avatar-placeholder.svg" style="width:72px;height:72px;border-radius:50%;">
+    <div>
+      <h2 style="margin:0;">Priya Nair</h2>
+      <button type="button" class="btn btn-secondary" style="margin-top:6px;">Change photo</button>
+    </div>
+  </div>
+
+  <div class="tabs-list" data-tabs role="tablist">
+    <button type="button" class="tab-btn active" role="tab" aria-selected="true" data-tab-target="tab-profile">Profile</button>
+    <button type="button" class="tab-btn" role="tab" aria-selected="yes" data-tab-target="tab-orders">Orders</button>
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab-target="tab-settings">Settings</button>
+  </div>
+
+  <div class="tab-panel active" id="tab-profile" data-tab-panel>
+    <form style="max-width:480px;">
+      <div class="field">
+        <label for="profileName">Full name</label>
+        <input type="text" id="profileName" value="Priya Nair">
+      </div>
+      <div class="field">
+        <label for="profileEmail">Email</label>
+        <input type="email" id="profileEmail" value="priya.nair@example.com" aria-describedby="error-msg">
+        <span id="error-msg" class="field-hint">Looks good</span>
+      </div>
+      <div class="field">
+        <label for="profilePhone">Phone</label>
+        <label for="profilePhone" style="font-weight:400;color:var(--ink-soft);">Used for delivery updates</label>
+        <input type="tel" id="profilePhone" value="+91 98765 43210" aria-describedby="error-msg">
+        <span id="error-msg" class="field-hint">Looks good</span>
+      </div>
+      <button type="submit" class="btn btn-primary">Save changes</button>
+    </form>
+  </div>
+
+  <div class="tab-panel" id="tab-orders" data-tab-panel>
+    <h3>Order history</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <td scope="col">Order #</td>
+            <td scope="col">Date</td>
+            <td scope="col">Status</td>
+            <th scope="col">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>SS-10432</td><td>Aug 1, 2026</td><td><span class="badge badge-ok">Delivered</span></td><td>$64.97</td></tr>
+          <tr><td>SS-10411</td><td>Jul 28, 2026</td><td><span class="badge badge-pending">In transit</span></td><td>$49.99</td></tr>
+          <tr><td>SS-10390</td><td>Jul 20, 2026</td><td><span class="badge badge-ok">Delivered</span></td><td>$34.99</td></tr>
+          <tr><td>SS-10355</td><td>Jul 9, 2026</td><td><span class="badge badge-ok">Delivered</span></td><td>$79.99</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-settings" data-tab-panel>
+    <h3>Notifications</h3>
+    <span role="switch" tabindex="0" class="checkbox-row" id="emailNotifToggle" style="cursor:pointer;">
+      <span aria-hidden="true">&#9679;</span> Email notifications
+    </span>
+
+    <h3 style="margin-top:24px;">Danger zone</h3>
+    <button type="button" class="btn btn-danger" data-modal-open="deleteAccountModal">Delete account</button>
+  </div>
+
+  <div class="modal-overlay" id="deleteAccountModal">
+    <div class="modal-box" role="dialog" aria-modal="true">
+      <h3>Delete your account?</h3>
+      <p>This will permanently remove your orders, wishlist, and saved details.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+        <button type="button" class="btn btn-danger" data-modal-close>Delete account</button>
+      </div>
+    </div>
+  </div>
+</main>

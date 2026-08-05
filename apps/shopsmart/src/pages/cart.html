@@ -1,0 +1,66 @@
+<!-- TITLE: Shopping Cart - ShopSmart -->
+<!-- BODY_CLASS: page-cart -->
+<!-- VIEWPORT_EXTRA: , user-scalable=no -->
+<main id="main-content" class="page-content">
+  <h1>Your cart</h1>
+  <div class="table-wrap">
+    <table>
+      <caption class="visually-hidden">Items in your cart</caption>
+      <thead>
+        <tr>
+          <th scope="col">Product</th>
+          <th scope="col">Price</th>
+          <th scope="col">Quantity</th>
+          <th scope="col">Subtotal</th>
+          <th scope="col"><span class="visually-hidden">Remove</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <img src="assets/img/products/sku-1001.svg" style="width:56px;height:56px;object-fit:cover;border-radius:6px;">
+              <span>Wireless Mouse</span>
+            </div>
+          </td>
+          <td>$24.99</td>
+          <td>
+            <div style="display:flex;align-items:center;">
+              <button type="button" class="btn-icon small-target" data-qty-decrease="qty1">&minus;</button>
+              <button type="button" class="btn-icon small-target" data-qty-increase="qty1">+</button>
+              <input type="number" id="qty1" value="1" min="1" style="width:44px;text-align:center;margin-left:8px;">
+            </div>
+          </td>
+          <td>$24.99</td>
+          <td><button type="button" class="btn-icon small-target"><span aria-hidden="true">&times;</span></button></td>
+        </tr>
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <img src="assets/img/products/sku-1004.svg" alt="Yoga Mat" style="width:56px;height:56px;object-fit:cover;border-radius:6px;">
+              <span>Yoga Mat</span>
+            </div>
+          </td>
+          <td>$34.99</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <button type="button" class="btn-icon" data-qty-decrease="qty2" aria-label="Decrease quantity">&minus;</button>
+              <label for="qty2" class="visually-hidden">Quantity</label>
+              <input type="number" id="qty2" value="1" min="1" style="width:44px;text-align:center;">
+              <button type="button" class="btn-icon" data-qty-increase="qty2" aria-label="Increase quantity">+</button>
+            </div>
+          </td>
+          <td>$34.99</td>
+          <td><button type="button" class="btn-icon" aria-label="Remove Yoga Mat from cart"><span aria-hidden="true">&times;</span></button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="max-width:320px;margin-left:auto;">
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Subtotal</span><span>$59.98</span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Shipping</span><span>$4.99</span></div>
+    <div style="display:flex;justify-content:space-between;font-weight:700;font-size:18px;" tabindex="5"><span>Total</span><span id="cartTotal">$64.97</span></div>
+    <a href="checkout.html" class="btn btn-primary btn-block" style="margin-top:18px;color:#8fbfa8;">Proceed to checkout</a>
+  </div>
+</main>

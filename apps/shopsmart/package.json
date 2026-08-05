@@ -1,0 +1,12 @@
+{
+  "name": "shopsmart",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ShopSmart demo e-commerce app — target application for the accessibility-telemetry framework.",
+  "main": "server.js",
+  "scripts": {
+    "build": "node build.js",
+    "start": "node build.js && node server.js"
+  },
+  "license": "UNLICENSED"
+}

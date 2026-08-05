@@ -44,13 +44,32 @@ WCAG 2.2's behavioral criteria — 2.4.11 (Focus Not Obscured), 2.5.7 (Dragging 
 
 ## Build totals
 
-| Build | Total active | Threshold |
+Figures below are from an actual `@axe-core/playwright` 4.12.1 scan of the built app (`runOnly` = `wcag2a`, `wcag2aa`, `wcag21aa`, `wcag22aa`, `best-practice`), not hand-counted — see "Empirical corrections" below for how the catalog changed once real scanning began.
+
+| Build | Total active (measured) | Threshold |
 |---|---|---|
-| build-1 | 71 | 40+ |
-| build-2 | 43 | 30+ |
-| build-3 | 26 | 20+ |
-| build-4 | 35 | regression vs. build-3 (+35%) |
-| build-5 | 3 | stable / in-control |
+| build-1 | 87 | 40+ |
+| build-2 | TBD after remediation | 30+ |
+| build-3 | TBD after remediation | 20+ |
+| build-4 | TBD after regression | higher than build-3 |
+| build-5 | TBD after stabilization | low / in-control |
+
+## Empirical corrections (design vs. real axe-core behavior)
+
+The catalog was first designed by hand, then verified against a real scan of Build 1. Several assumptions about how specific rules trigger turned out to be wrong; they're recorded here because they're genuinely useful methodology findings, not just implementation notes:
+
+- **`autocomplete-valid` fires on an incorrect *value*, not a missing attribute.** A field with no `autocomplete` attribute at all is not flagged. Every seeded instance uses a syntactically-present-but-wrong token (e.g. `autocomplete="user-name"` instead of `"username"`).
+- **`aria-required-attr` only fires for attributes the ARIA spec formally mandates for a role** (e.g. `aria-checked` for `role="checkbox"`/`role="switch"`, `aria-expanded` for `role="combobox"`). Roles like `tab`, `option`, and `listbox` have no formally *required* state, so a "missing `aria-selected`" design targeting a tab doesn't trigger this rule — the catalog uses `role="checkbox"`/`role="switch"` custom toggles instead.
+- **`placeholder` counts as a fallback accessible name** (per HTML-AAM), so a text input with a placeholder and no `<label>` does **not** trigger the `label` rule. Every seeded `label` instance has no placeholder either.
+- **`document-title` only fires on a missing/empty `<title>`**, not a merely non-descriptive one. `"ShopSmart"` on every page would not be flagged; the two seeded instances use a genuinely empty `<title>`.
+- **Elements hidden via `display:none` (or `visibility:hidden`) are excluded from scanning entirely** — this affects anything closed-by-default: modals, dropdown menus, off-canvas panels. All of ShopSmart's overlay components (`.modal-overlay`, `.dropdown-menu`) use a `max-height:0; overflow:hidden; opacity:0` closed state instead, which axe still evaluates, so `aria-dialog-name` and similar checks work on closed-by-default widgets without needing Playwright to click them open first.
+- **`target-size` only fires when an undersized target sits with near-zero spacing next to another target.** An isolated undersized button, even alone on the page, passes under WCAG 2.5.8's spacing exception. Every seeded `target-size` instance is one element in an adjacent (zero-gap) pair or group.
+- **`scrollable-region-focusable` requires the region to actually overflow** — a `overflow-x:auto` container whose content is narrower than the container never scrolls, so it's never flagged. `.scroll-strip` has an explicit `max-width` chosen to be smaller than its content.
+- **`nested-interactive` only fired for a `<button>` wrapping an `<a>`** in this axe-core version, not the reverse (an `<a>` wrapping a `<button>`, despite being at least as common a real-world bug). All seeded instances use "outer button, inner link."
+- **`th-has-data-cells` did not fire** for a plain header row of `<td>` elements (no `<th>` at all) in any table size tested. It was replaced with **`scope-attr-valid`** (`scope="col"` placed on a `<td>` instead of a `<th>`), which reliably fires and covers the same WCAG 1.3.1 territory.
+- **`duplicate-id-aria` and `form-field-multiple-labels` were confirmed axe-core rules that this catalog intentionally seeds, but both consistently resolved as `incomplete` ("needs review") rather than a confirmed `violation`** for the constructions tried here. They remain in the app's markup (real, defensible bugs) but are **not counted** in the build totals above (`countedAsViolation: false` in `catalog.json`) — a genuine finding about the limits of fully-automated confirmation, worth citing directly as a threat-to-validity data point for RQ3.
+- **`region` fires once per top-level content chunk not inside a landmark**, not once per page. A page with no `<main>` at all (dashboard.html, contact.html) produces far more `region` violations (8 and 12 respectively) than the one-per-page count originally assumed. This is still fully remediated by Build 3 (adding `<main>`), it's just a larger number in Builds 1–2 than originally planned.
+- **An `<iframe>` with no explicit document (e.g. blank `src`) still gets its own accessibility scan**, and its trivial internal `<html>` has no `<main>` — this adds one incidental `landmark-one-main` hit on the Contact page beyond the two intentionally-seeded instances. Documented rather than engineered around.
 
 ## Full rule reference
 

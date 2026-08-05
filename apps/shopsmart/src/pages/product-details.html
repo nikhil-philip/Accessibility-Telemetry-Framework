@@ -1,0 +1,87 @@
+<!-- TITLE: Wireless Mouse - ShopSmart -->
+<!-- BODY_CLASS: page-product-details -->
+<main id="main-content" class="page-content">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start;" class="pd-layout">
+    <div>
+      <img src="assets/img/products/sku-1001.svg" alt="Wireless Mouse" style="border-radius:10px;">
+      <div class="scroll-strip" id="gallery-strip">
+        <img src="assets/img/products/sku-1001.svg" alt="Wireless Mouse, front view">
+        <img src="assets/img/products/sku-1002.svg" alt="Wireless Mouse, side view">
+        <img src="assets/img/products/sku-1003.svg" alt="Wireless Mouse, packaging">
+      </div>
+    </div>
+    <div>
+      <h1>Wireless Mouse</h1>
+      <p class="text-muted">SKU-1001 &middot; Electronics</p>
+      <p style="font-size:24px;font-weight:700;">$24.99</p>
+      <p>A precise, silent-click wireless mouse with a 2000 DPI sensor and a 12-month battery life.</p>
+
+      <div class="field" style="max-width:140px;">
+        <label for="qtyInput">Quantity</label>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button type="button" class="btn-icon" data-qty-decrease="qtyInput" aria-label="Decrease quantity">&minus;</button>
+          <input type="number" id="qtyInput" value="1" min="1" style="width:56px;text-align:center;">
+          <button type="button" class="btn-icon" data-qty-increase="qtyInput" aria-label="Increase quantity">+</button>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-primary">Add to cart</button>
+    </div>
+  </div>
+
+  <div class="tabs-list" data-tabs role="tablist" style="margin-top:36px;">
+    <button type="button" class="tab-btn active" role="tab" aria-selected="true" data-tab-target="tab-description">Description</button>
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab-target="tab-specs">Specs</button>
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab-target="tab-reviews">Reviews</button>
+  </div>
+  <div class="tab-panel active" id="tab-description" data-tab-panel>
+    <p>A precise, silent-click wireless mouse designed for all-day comfort. Pairs instantly with the included USB-A receiver.</p>
+  </div>
+  <div class="tab-panel" id="tab-specs" data-tab-panel aria-hidden="true">
+    <ul>
+      <li>2.4GHz wireless, USB-A receiver</li>
+      <li>2000 DPI optical sensor</li>
+      <li>Battery life: up to 12 months</li>
+    </ul>
+    <p><a href="#tab-description">Back to description</a></p>
+  </div>
+  <div class="tab-panel" id="tab-reviews" data-tab-panel>
+    <h2>Customer reviews</h2>
+    <div class="scroll-strip">
+      <div class="review-card">
+        <h4>Great everyday mouse</h4>
+        <p class="text-muted">&#9733;&#9733;&#9733;&#9733;&#9733; &middot; Anika R.</p>
+        <p>Battery lasts forever and it's whisper quiet. Highly recommend for office use.</p>
+      </div>
+      <div class="review-card">
+        <h4>Good value</h4>
+        <p class="text-muted">&#9733;&#9733;&#9733;&#9733;&#9734; &middot; Devraj K.</p>
+        <p>Comfortable grip, tracks well on most surfaces.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>You may also like</h3>
+  <div class="product-grid">
+    <div class="product-card">
+      <a href="product-details.html?sku=SKU-1006" aria-label="Desk Lamp"><img src="assets/img/products/sku-1006.svg" alt=""></a>
+      <div class="product-card-body">
+        <h4><a href="product-details.html?sku=SKU-1006">Desk Lamp</a></h4>
+        <div class="product-card-price">$29.99</div>
+        <div class="product-card-actions">
+          <a href="product-details.html?sku=SKU-1006" class="btn-icon" aria-label=""><span aria-hidden="true">&#128065;</span></a>
+        </div>
+      </div>
+    </div>
+    <button type="button" class="product-card" onclick="window.location.href='product-details.html?sku=SKU-1007'">
+      <img src="assets/img/products/sku-1007.svg" alt="Canvas Backpack">
+      <div class="product-card-body">
+        <h4>Canvas Backpack</h4>
+        <div class="product-card-price">$59.99</div>
+        <div class="product-card-actions">
+          <a href="product-details.html?sku=SKU-1007" class="btn btn-secondary">Quick add</a>
+        </div>
+      </div>
+    </button>
+  </div>
+</main>

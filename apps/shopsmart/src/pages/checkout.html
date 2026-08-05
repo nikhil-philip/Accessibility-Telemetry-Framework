@@ -1,0 +1,78 @@
+<!-- TITLE: Checkout - ShopSmart -->
+<!-- BODY_CLASS: page-checkout -->
+<!-- VIEWPORT_EXTRA: , maximum-scale=1 -->
+<main id="main-content" class="page-content">
+  <h1>Checkout</h1>
+
+  <form style="max-width:560px;">
+    <h2>Shipping address</h2>
+    <div class="field">
+      <input type="text" id="fullName" name="fullName" autocomplete="fullname" required>
+    </div>
+    <div class="field">
+      <label for="address">Address</label>
+      <input type="text" id="address" name="address" autocomplete="address" required>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="city">City</label>
+        <input type="text" id="city" name="city" required>
+      </div>
+      <div class="field">
+        <label for="postalCode">Postal code</label>
+        <input type="text" id="postalCode" name="postalCode" autocomplete="zip" required>
+      </div>
+    </div>
+    <div class="field">
+      <label for="checkoutEmail">Email</label>
+      <label for="checkoutEmail" style="font-weight:400;color:var(--ink-soft);">We'll send your receipt here</label>
+      <input type="email" id="checkoutEmail" name="email" required>
+    </div>
+    <div class="field">
+      <label for="checkoutPhone">Phone</label>
+      <label for="checkoutPhone" style="font-weight:400;color:var(--ink-soft);">For delivery updates</label>
+      <input type="tel" id="checkoutPhone" name="phone" required>
+    </div>
+    <p class="field-hint text-low-contrast">Standard delivery takes 3&ndash;5 business days.</p>
+
+    <h2>Shipping method</h2>
+    <div style="display:flex;align-items:center;margin-bottom:10px;">
+      <input type="radio" id="shipStandard" name="shipMethod" class="small-target" checked>
+      <input type="radio" id="shipExpress" name="shipMethod" class="small-target">
+    </div>
+    <div class="checkbox-row" style="margin-bottom:6px;">
+      <label for="shipStandard">Standard &mdash; $4.99 (3&ndash;5 days)</label>
+    </div>
+    <div class="checkbox-row" style="margin-bottom:18px;">
+      <label for="shipExpress">Express &mdash; $12.99 (1&ndash;2 days)</label>
+    </div>
+
+    <h2>Payment</h2>
+    <div class="field">
+      <input type="text" id="cardNumber" name="cardNumber" required>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="cardExpiry">Expiry</label>
+        <input type="text" id="cardExpiry" name="cardExpiry" placeholder="MM/YY" required>
+      </div>
+      <div class="field">
+        <label for="cardCvc">CVC</label>
+        <input type="text" id="cardCvc" name="cardCvc" required>
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-primary btn-block" data-modal-open="orderConfirmModal">Place order</button>
+  </form>
+
+  <div class="modal-overlay" id="orderConfirmModal">
+    <div class="modal-box" role="dialog" aria-modal="true">
+      <h3>Confirm your order</h3>
+      <p>Total: <strong>$64.97</strong> &middot; Standard shipping &middot; Arrives in 3&ndash;5 business days.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+        <button type="button" class="btn btn-primary" data-modal-close>Confirm order</button>
+      </div>
+    </div>
+  </div>
+</main>
