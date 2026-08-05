@@ -224,7 +224,7 @@ main, .page-content {
   position: absolute;
   top: 10px;
   left: 10px;
-  background: #e8a99f;
+  background: var(--danger);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -240,10 +240,10 @@ main, .page-content {
   color: var(--danger);
 }
 .wishlist-heart.active { color: var(--danger); }
-.swatch-row { display: flex; }
+.swatch-row { display: flex; gap: 10px; }
 .swatch {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   border: 2px solid #fff;
   outline: 1px solid var(--line);

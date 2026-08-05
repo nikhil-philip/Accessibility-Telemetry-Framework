@@ -52,9 +52,15 @@
         });
         tab.classList.add('active');
         if (tab.hasAttribute('aria-selected')) tab.setAttribute('aria-selected', 'true');
-        all('[data-tab-panel]').forEach(function (p) { p.classList.remove('active'); });
+        all('[data-tab-panel]').forEach(function (p) {
+          p.classList.remove('active');
+          if (p.hasAttribute('aria-hidden')) p.setAttribute('aria-hidden', 'true');
+        });
         var panel = document.getElementById(tab.getAttribute('data-tab-target'));
-        if (panel) panel.classList.add('active');
+        if (panel) {
+          panel.classList.add('active');
+          if (panel.hasAttribute('aria-hidden')) panel.setAttribute('aria-hidden', 'false');
+        }
       });
     });
   });
@@ -100,12 +106,12 @@
   // Dashboard "Quick actions" slide-out panel
   var quickBtn = document.getElementById('quickActionsBtn');
   var quickPanel = document.getElementById('quickActionsPanel');
-  on(quickBtn, 'click', function () {
-    quickPanel.classList.toggle('open');
-  });
-  on(quickPanel && quickPanel.querySelector('[data-panel-close]'), 'click', function () {
-    quickPanel.classList.remove('open');
-  });
+  function setQuickPanelOpen(isOpen) {
+    quickPanel.classList.toggle('open', isOpen);
+    quickPanel.setAttribute('aria-hidden', String(!isOpen));
+  }
+  on(quickBtn, 'click', function () { setQuickPanelOpen(!quickPanel.classList.contains('open')); });
+  on(quickPanel && quickPanel.querySelector('[data-panel-close]'), 'click', function () { setQuickPanelOpen(false); });
 
   // Wishlist heart toggle (Build 4+)
   all('[data-wishlist-toggle]').forEach(function (btn) {

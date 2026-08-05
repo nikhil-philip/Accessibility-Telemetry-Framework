@@ -39,11 +39,11 @@
   <p class="text-muted">Showing 8 of 8 products</p>
 
   <div class="product-grid">
-    <button type="button" class="product-card" onclick="window.location.href='product-details.html?sku=SKU-1001'">
+    <div class="product-card">
       <span class="sale-badge">Sale</span>
-      <img src="assets/img/products/sku-1001.svg" alt="Wireless Mouse">
+      <a href="product-details.html?sku=SKU-1001"><img src="assets/img/products/sku-1001.svg" alt="Wireless Mouse"></a>
       <div class="product-card-body">
-        <h3>Wireless Mouse</h3>
+        <h3><a href="product-details.html?sku=SKU-1001">Wireless Mouse</a></h3>
         <div class="product-card-price">$24.99</div>
         <div class="product-card-actions">
           <a href="product-details.html?sku=SKU-1001" class="btn btn-secondary">Read reviews</a>
@@ -54,7 +54,7 @@
           <button type="button" class="swatch" style="background:#c9ae6a;" aria-label="Gold"></button>
         </div>
       </div>
-    </button>
+    </div>
 
     <div class="product-card">
       <a href="product-details.html?sku=SKU-1002" aria-label="Bluetooth Speaker"><img src="assets/img/products/sku-1002.svg" alt="Bluetooth Speaker"></a>
@@ -79,17 +79,17 @@
       </div>
     </div>
 
-    <button type="button" class="product-card" onclick="window.location.href='product-details.html?sku=SKU-1004'">
-      <img src="assets/img/products/sku-1004.svg" alt="Yoga Mat">
+    <div class="product-card">
+      <a href="product-details.html?sku=SKU-1004"><img src="assets/img/products/sku-1004.svg" alt="Yoga Mat"></a>
       <div class="product-card-body">
-        <h3>Yoga Mat</h3>
+        <h3><a href="product-details.html?sku=SKU-1004">Yoga Mat</a></h3>
         <div class="product-card-price" id="price-label">$34.99</div>
         <div class="product-card-actions">
           <a href="product-details.html?sku=SKU-1004" class="btn btn-secondary">View details</a>
           <a href="#" class="wishlist-heart" data-wishlist-toggle aria-label="Add Yoga Mat to wishlist"><span aria-hidden="true">&#9825;</span></a>
         </div>
       </div>
-    </button>
+    </div>
 
     <div class="product-card">
       <a href="product-details.html?sku=SKU-1005"><img src="assets/img/products/sku-1005.svg" alt="Ceramic Mug Set"></a>
@@ -143,7 +143,7 @@
   </nav>
 
   <h3>Recently viewed</h3>
-  <div class="scroll-strip" id="recentlyViewed">
+  <div class="scroll-strip" id="recentlyViewed" tabindex="0" aria-label="Recently viewed products, scroll for more">
     <img src="assets/img/products/sku-1005.svg" alt="Ceramic Mug Set">
     <img src="assets/img/products/sku-1006.svg" alt="Desk Lamp">
     <img src="assets/img/products/sku-1008.svg" alt="Steel Water Bottle">

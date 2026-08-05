@@ -44,9 +44,9 @@
       <table>
         <thead>
           <tr>
-            <td scope="col">Order #</td>
-            <td scope="col">Date</td>
-            <td scope="col">Status</td>
+            <th scope="col">Order #</th>
+            <th scope="col">Date</th>
+            <th scope="col">Status</th>
             <th scope="col">Total</th>
           </tr>
         </thead>
@@ -71,8 +71,8 @@
   </div>
 
   <div class="modal-overlay" id="deleteAccountModal">
-    <div class="modal-box" role="dialog" aria-modal="true">
-      <h3>Delete your account?</h3>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="deleteAccountTitle">
+      <h3 id="deleteAccountTitle">Delete your account?</h3>
       <p>This will permanently remove your orders, wishlist, and saved details.</p>
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>

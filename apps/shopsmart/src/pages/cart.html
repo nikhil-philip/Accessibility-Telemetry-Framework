@@ -25,8 +25,8 @@
           <td>$24.99</td>
           <td>
             <div style="display:flex;align-items:center;">
-              <button type="button" class="btn-icon small-target" data-qty-decrease="qty1">&minus;</button>
-              <button type="button" class="btn-icon small-target" data-qty-increase="qty1">+</button>
+              <button type="button" class="btn-icon" data-qty-decrease="qty1" aria-label="Decrease quantity">&minus;</button>
+              <button type="button" class="btn-icon" data-qty-increase="qty1" aria-label="Increase quantity">+</button>
               <label for="qty1" class="visually-hidden">Quantity</label>
               <input type="number" id="qty1" value="1" min="1" style="width:44px;text-align:center;margin-left:8px;">
             </div>
@@ -60,7 +60,7 @@
   <div style="max-width:320px;margin-left:auto;">
     <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Subtotal</span><span>$59.98</span></div>
     <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Shipping</span><span>$4.99</span></div>
-    <div style="display:flex;justify-content:space-between;font-weight:700;font-size:18px;" tabindex="5"><span>Total</span><span id="cartTotal">$64.97</span></div>
+    <div style="display:flex;justify-content:space-between;font-weight:700;font-size:18px;"><span>Total</span><span id="cartTotal">$64.97</span></div>
     <a href="checkout.html" class="btn btn-primary btn-block" style="margin-top:18px;">Proceed to checkout</a>
   </div>
 </main>

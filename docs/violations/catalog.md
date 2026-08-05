@@ -49,10 +49,12 @@ Figures below are from an actual `@axe-core/playwright` 4.12.1 scan of the built
 | Build | Total active (measured) | Threshold |
 |---|---|---|
 | build-1 | 87 | 40+ |
-| build-2 | TBD after remediation | 30+ |
-| build-3 | TBD after remediation | 20+ |
-| build-4 | TBD after regression | higher than build-3 |
-| build-5 | TBD after stabilization | low / in-control |
+| build-2 | 59 | 30+ |
+| build-3 | 26 | 20+ |
+| build-4 | 35 | higher than build-3 (+35%) |
+| build-5 | 6 | low / in-control |
+
+Build 5's residual 6 instances are all deliberate, permanent backlog or untracked minor noise, not missed remediation: 3× `target-size` (pagination buttons — accepted risk), 1× `frame-title` (contact page map iframe — accepted risk), 2× `image-redundant-alt` (a minor `best-practice` finding introduced incidentally while fixing `link-name` on two product images, never targeted for remediation). This is the intended "in control, not literally zero" state.
 
 ## Empirical corrections (design vs. real axe-core behavior)
 

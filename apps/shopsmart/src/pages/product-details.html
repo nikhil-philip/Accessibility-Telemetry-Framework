@@ -5,7 +5,7 @@
     <div style="position:relative;">
       <span class="sale-badge">Sale</span>
       <img src="assets/img/products/sku-1001.svg" alt="Wireless Mouse" style="border-radius:10px;">
-      <div class="scroll-strip" id="gallery-strip">
+      <div class="scroll-strip" id="gallery-strip" tabindex="0" aria-label="Product image gallery, scroll for more">
         <img src="assets/img/products/sku-1001.svg" alt="Wireless Mouse, front view">
         <img src="assets/img/products/sku-1002.svg" alt="Wireless Mouse, side view">
         <img src="assets/img/products/sku-1003.svg" alt="Wireless Mouse, packaging">
@@ -41,7 +41,7 @@
   </div>
 
   <div class="modal-overlay" id="quickViewModal">
-    <div class="modal-box" role="dialog" aria-modal="true">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-label="Quick view: Wireless Mouse">
       <img src="assets/img/products/sku-1001.svg" alt="Wireless Mouse" style="border-radius:8px;margin-bottom:12px;">
       <p style="font-weight:700;">Wireless Mouse &middot; $24.99</p>
       <p class="text-muted">A precise, silent-click wireless mouse with a 2000 DPI sensor and a 12-month battery life.</p>
@@ -60,7 +60,7 @@
   <div class="tab-panel active" id="tab-description" data-tab-panel>
     <p>A precise, silent-click wireless mouse designed for all-day comfort. Pairs instantly with the included USB-A receiver.</p>
   </div>
-  <div class="tab-panel" id="tab-specs" data-tab-panel aria-hidden="true">
+  <div class="tab-panel" id="tab-specs" data-tab-panel>
     <ul>
       <li>2.4GHz wireless, USB-A receiver</li>
       <li>2000 DPI optical sensor</li>
@@ -70,7 +70,7 @@
   </div>
   <div class="tab-panel" id="tab-reviews" data-tab-panel>
     <h2>Customer reviews</h2>
-    <div class="scroll-strip">
+    <div class="scroll-strip" tabindex="0" aria-label="Customer reviews, scroll for more">
       <div class="review-card">
         <h3>Great everyday mouse</h3>
         <p class="text-muted">&#9733;&#9733;&#9733;&#9733;&#9733; &middot; Anika R.</p>
@@ -86,27 +86,27 @@
 
   <h3>You may also like</h3>
   <div class="product-grid">
-    <button type="button" class="product-card" onclick="window.location.href='product-details.html?sku=SKU-1006'">
-      <img src="assets/img/products/sku-1006.svg" alt="Desk Lamp">
+    <div class="product-card">
+      <a href="product-details.html?sku=SKU-1006"><img src="assets/img/products/sku-1006.svg" alt="Desk Lamp"></a>
       <div class="product-card-body">
-        <h4>Desk Lamp</h4>
+        <h4><a href="product-details.html?sku=SKU-1006">Desk Lamp</a></h4>
         <div class="product-card-price">$29.99</div>
         <div class="product-card-actions">
           <a href="product-details.html?sku=SKU-1006" class="btn-icon" aria-label="View Desk Lamp details"><span aria-hidden="true">&#128065;</span></a>
           <a href="#" class="wishlist-heart" data-wishlist-toggle aria-label="Add Desk Lamp to wishlist"><span aria-hidden="true">&#9825;</span></a>
         </div>
       </div>
-    </button>
-    <button type="button" class="product-card" onclick="window.location.href='product-details.html?sku=SKU-1007'">
-      <img src="assets/img/products/sku-1007.svg" alt="Canvas Backpack">
+    </div>
+    <div class="product-card">
+      <a href="product-details.html?sku=SKU-1007"><img src="assets/img/products/sku-1007.svg" alt="Canvas Backpack"></a>
       <div class="product-card-body">
-        <h4>Canvas Backpack</h4>
+        <h4><a href="product-details.html?sku=SKU-1007">Canvas Backpack</a></h4>
         <div class="product-card-price">$59.99</div>
         <div class="product-card-actions">
           <a href="product-details.html?sku=SKU-1007" class="btn btn-secondary">Quick add</a>
           <a href="#" class="wishlist-heart" data-wishlist-toggle aria-label="Add Canvas Backpack to wishlist"><span aria-hidden="true">&#9825;</span></a>
         </div>
       </div>
-    </button>
+    </div>
   </div>
 </main>
