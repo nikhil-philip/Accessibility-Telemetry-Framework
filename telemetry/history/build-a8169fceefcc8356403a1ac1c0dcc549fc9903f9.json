@@ -1,0 +1,309 @@
+{
+  "buildId": "local-1785982760424",
+  "commitSha": "a8169fceefcc8356403a1ac1c0dcc549fc9903f9",
+  "branch": "HEAD",
+  "triggeredBy": "manual",
+  "timestamp": "2026-08-06T02:19:20.661Z",
+  "wcagLevel": "AA",
+  "pagesScanned": 8,
+  "violationsBySeverity": {
+    "critical": 19,
+    "serious": 34,
+    "moderate": 33,
+    "minor": 1
+  },
+  "violationsByRule": [
+    {
+      "ruleId": "region",
+      "impact": "moderate",
+      "wcagCriteria": [],
+      "occurrences": 20,
+      "pages": [
+        "Dashboard",
+        "Contact Us"
+      ]
+    },
+    {
+      "ruleId": "label",
+      "impact": "critical",
+      "wcagCriteria": [
+        "wcag2a",
+        "wcag412"
+      ],
+      "occurrences": 6,
+      "pages": [
+        "Login",
+        "Checkout",
+        "Shopping Cart",
+        "Contact Us"
+      ]
+    },
+    {
+      "ruleId": "color-contrast",
+      "impact": "serious",
+      "wcagCriteria": [
+        "wcag2aa",
+        "wcag143"
+      ],
+      "occurrences": 5,
+      "pages": [
+        "Login",
+        "Dashboard",
+        "Checkout",
+        "Shopping Cart",
+        "Contact Us"
+      ]
+    },
+    {
+      "ruleId": "image-alt",
+      "impact": "critical",
+      "wcagCriteria": [
+        "wcag2a",
+        "wcag111"
+      ],
+      "occurrences": 5,
+      "pages": [
+        "Dashboard",
+        "User Profile",
+        "Product Listing",
+        "Shopping Cart"
+      ]
+    },
+    {
+      "ruleId": "target-size",
+      "impact": "serious",
+      "wcagCriteria": [
+        "wcag22aa",
+        "wcag258"
+      ],
+      "occurrences": 5,
+      "pages": [
+        "Product Listing",
+        "Shopping Cart"
+      ]
+    },
+    {
+      "ruleId": "autocomplete-valid",
+      "impact": "serious",
+      "wcagCriteria": [
+        "wcag21aa",
+        "wcag135"
+      ],
+      "occurrences": 4,
+      "pages": [
+        "Login",
+        "Checkout"
+      ]
+    },
+    {
+      "ruleId": "meta-viewport",
+      "impact": "moderate",
+      "wcagCriteria": [
+        "wcag2aa",
+        "wcag144"
+      ],
+      "occurrences": 4,
+      "pages": [
+        "Login",
+        "Product Listing",
+        "Checkout",
+        "Shopping Cart"
+      ]
+    },
+    {
+      "ruleId": "html-has-lang",
+      "impact": "serious",
+      "wcagCriteria": [
+        "wcag2a",
+        "wcag311"
+      ],
+      "occurrences": 3,
+      "pages": [
+        "Login",
+        "Dashboard",
+        "Product Listing"
+      ]
+    },
+    {
+      "ruleId": "heading-order",
+      "impact": "moderate",
+      "wcagCriteria": [],
+      "occurrences": 3,
+      "pages": [
+        "Product Details",
+        "Dashboard",
+        "Product Listing"
+      ]
+    },
+    {
+      "ruleId": "link-name",
+      "impact": "serious",
+      "wcagCriteria": [
+        "wcag2a",
+        "wcag244",
+        "wcag412"
+      ],
+      "occurrences": 3,
+      "pages": [
+        "Product Details",
+        "Product Listing",
+        "Contact Us"
+      ]
+    },
+    {
+      "ruleId": "scrollable-region-focusable",
+      "impact": "serious",
+      "wcagCriteria": [
+        "wcag2a",
+        "wcag211",
+        "wcag213"
+      ],
+      "occurrences": 3,
+      "pages": [
+        "Product Details",
+        "Product Listing"
+      ]
+    },
+    {
+      "ruleId": "button-name",
+      "impact": "critical",
+      "wcagCriteria": [
+        "wcag2a",
+        "wcag412"
+      ],
+      "occurrences": 3,
+      "pages": [
+        "Dashboard",
+        "Product Listing",
+        "Shopping Cart"
+      ]
+    },
+    {
+      "ruleId": "landmark-one-main",
+      "impact": "moderate",
+      "wcagCriteria": [],
+      "occurrences": 3,
+      "pages": [
+        "Dashboard",
+        "Contact Us"
+      ]
+    },
+    {
+      "ruleId": "aria-required-attr",
+      "impact": "critical",
+      "wcagCriteria": [
+        "wcag2a",
+        "wcag412"
+      ],
+      "occurrences": 3,
+      "pages": [
+        "User Profile",
+        "Product Listing"
+      ]
+    },
+    {
+      "ruleId": "scope-attr-valid",
+      "impact": "moderate",
+      "wcagCriteria": [],
+      "occurrences": 3,
+      "pages": [
+        "User Profile"
+      ]
+    },
+    {
+      "ruleId": "document-title",
+      "impact": "serious",
+      "wcagCriteria": [
+        "wcag2a",
+        "wcag242"
+      ],
+      "occurrences": 2,
+      "pages": [
+        "Login",
+        "Contact Us"
+      ]
+    },
+    {
+      "ruleId": "aria-hidden-focus",
+      "impact": "serious",
+      "wcagCriteria": [
+        "wcag2a",
+        "wcag412"
+      ],
+      "occurrences": 2,
+      "pages": [
+        "Product Details",
+        "Dashboard"
+      ]
+    },
+    {
+      "ruleId": "nested-interactive",
+      "impact": "serious",
+      "wcagCriteria": [
+        "wcag2a",
+        "wcag412"
+      ],
+      "occurrences": 2,
+      "pages": [
+        "Product Details",
+        "Product Listing"
+      ]
+    },
+    {
+      "ruleId": "tabindex",
+      "impact": "serious",
+      "wcagCriteria": [],
+      "occurrences": 2,
+      "pages": [
+        "Dashboard",
+        "Shopping Cart"
+      ]
+    },
+    {
+      "ruleId": "aria-dialog-name",
+      "impact": "serious",
+      "wcagCriteria": [],
+      "occurrences": 2,
+      "pages": [
+        "User Profile",
+        "Checkout"
+      ]
+    },
+    {
+      "ruleId": "aria-valid-attr-value",
+      "impact": "critical",
+      "wcagCriteria": [
+        "wcag2a",
+        "wcag412"
+      ],
+      "occurrences": 2,
+      "pages": [
+        "User Profile",
+        "Product Listing"
+      ]
+    },
+    {
+      "ruleId": "image-redundant-alt",
+      "impact": "minor",
+      "wcagCriteria": [],
+      "occurrences": 1,
+      "pages": [
+        "Shopping Cart"
+      ]
+    },
+    {
+      "ruleId": "frame-title",
+      "impact": "serious",
+      "wcagCriteria": [
+        "wcag2a",
+        "wcag412"
+      ],
+      "occurrences": 1,
+      "pages": [
+        "Contact Us"
+      ]
+    }
+  ],
+  "defectScore": 427,
+  "totalNodesFailed": 87
+}

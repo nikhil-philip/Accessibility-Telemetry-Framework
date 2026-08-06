@@ -4,7 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "playwright test",
+    "test:a11y": "playwright test tests/accessibility",
+    "test:functional": "playwright test tests/functional",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report reports/html"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +19,7 @@
     "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.62.1",
     "@types/node": "^26.1.2",
+    "dotenv": "^16.4.5",
     "ts-node": "^10.9.2",
     "typescript": "^7.0.2"
   }

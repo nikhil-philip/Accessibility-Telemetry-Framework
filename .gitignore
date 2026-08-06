@@ -4,3 +4,15 @@ dashboard/
 telemetry/aggregated/*.json
 *.log
 .DS_Store
+
+# Playwright framework
+.env
+.env.local
+.env.staging
+.env.production
+reports/*
+!reports/.gitkeep
+playwright-report/
+test-results/
+playwright/.auth/
+dist-ts/
