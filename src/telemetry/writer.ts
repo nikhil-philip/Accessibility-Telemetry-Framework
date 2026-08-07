@@ -2,12 +2,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { TelemetryRecord } from './schema';
 import { createLogger } from '../utils/logger';
+import { repoPath } from '../utils/paths';
 
 const logger = createLogger('TelemetryWriter');
 
 // Repo-root-relative, matching ARCHITECTURE.md §5's `telemetry/history/`.
-// __dirname is src/telemetry, so two levels up is the repo root.
-const HISTORY_DIR = path.resolve(__dirname, '../../telemetry/history');
+// See src/utils/paths.ts for why this is cwd-relative, not __dirname-relative.
+const HISTORY_DIR = repoPath('telemetry/history');
 
 /**
  * Writes one immutable record per build. Never overwrites -- if a record

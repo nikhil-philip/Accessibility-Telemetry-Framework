@@ -9,7 +9,8 @@
     "test:functional": "playwright test tests/functional",
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
-    "report": "playwright show-report reports/html"
+    "report": "playwright show-report reports/html",
+    "verify:spc": "tsc -p tsconfig.json && node dist-ts/scripts/verify-spc.js"
   },
   "keywords": [],
   "author": "",
