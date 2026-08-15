@@ -16,6 +16,6 @@
     "declaration": false,
     "sourceMap": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts", "playwright.config.ts"],
+  "include": ["src/**/*.ts", "tests/**/*.ts", "tests-dashboard/**/*.ts", "scripts/**/*.ts", "playwright.config.ts", "playwright.dashboard.config.ts"],
   "exclude": ["node_modules", "apps/shopsmart", "dist-ts", "reports"]
 }

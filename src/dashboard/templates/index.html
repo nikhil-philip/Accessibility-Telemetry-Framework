@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Accessibility Telemetry &mdash; Engineering Quality Dashboard</title>
+  <link rel="stylesheet" href="assets/dashboard.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="masthead">
+      <h1>Accessibility Quality Engineering Dashboard</h1>
+      <p id="generated-at">Loading&hellip;</p>
+    </header>
+
+    <main id="app" aria-live="polite">
+      <p>Loading dashboard data&hellip;</p>
+    </main>
+
+    <footer class="site-footer">
+      <p>Presentation layer only &mdash; every value on this page is read directly from <code>data.json</code>, itself produced by the unmodified L4 (Telemetry), L5 (SPC Analytics), and L6 (Quality Gate) engines. No score, control limit, rule, or capability calculation is performed by this page.</p>
+    </footer>
+  </div>
+
+  <script src="assets/dashboard.js"></script>
+</body>
+</html>
