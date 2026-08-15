@@ -10,7 +10,13 @@
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
     "report": "playwright show-report reports/html",
-    "verify:spc": "tsc -p tsconfig.json && node dist-ts/scripts/verify-spc.js"
+    "verify:spc": "tsc -p tsconfig.json && node dist-ts/scripts/verify-spc.js",
+    "verify:gates": "tsc -p tsconfig.json && node dist-ts/scripts/verify-gates.js",
+    "verify:experiment": "tsc -p tsconfig.json && node dist-ts/scripts/verify-experiment.js",
+    "verify:stable-cohort": "tsc -p tsconfig.json && node dist-ts/scripts/verify-stable-cohort.js",
+    "generate:experiment": "tsc -p tsconfig.json && node dist-ts/scripts/generate-experiment.js",
+    "generate:stable-cohort": "tsc -p tsconfig.json && node dist-ts/scripts/generate-stable-cohort.js",
+    "verify": "npm run verify:spc && npm run verify:gates && npm run verify:experiment && npm run verify:stable-cohort"
   },
   "keywords": [],
   "author": "",

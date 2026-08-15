@@ -1,0 +1,18 @@
+{
+  "buildId": "exp-008",
+  "commitSha": "exp-008",
+  "branch": "experiment/spc-validation-cohort",
+  "triggeredBy": "manual",
+  "timestamp": "2026-01-08T00:00:00.000Z",
+  "wcagLevel": "AA",
+  "pagesScanned": 8,
+  "violationsBySeverity": {
+    "critical": 2,
+    "serious": 6,
+    "moderate": 2,
+    "minor": 3
+  },
+  "violationsByRule": [],
+  "defectScore": 57,
+  "totalNodesFailed": 13
+}

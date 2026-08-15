@@ -11,24 +11,36 @@ const logger = createLogger('TelemetryWriter');
 const HISTORY_DIR = repoPath('telemetry/history');
 
 /**
- * Writes one immutable record per build. Never overwrites -- if a record
- * for this commitSha already exists (e.g. a re-run of the same commit),
- * a short numeric suffix is appended rather than clobbering history, since
- * ARCHITECTURE.md's data-at-rest contract for telemetry/history/ is
- * append-only.
+ * Writes one immutable record into an arbitrary directory, using the same
+ * "never overwrite, append a numeric suffix on collision" rule as
+ * writeTelemetryRecord() below. Extracted so a caller that must keep its
+ * records out of telemetry/history/ entirely (e.g. a synthetic/experimental
+ * cohort -- see src/telemetry/experimentGenerator.ts) reuses this exact
+ * file-format and collision logic instead of re-implementing it.
  */
-export function writeTelemetryRecord(record: TelemetryRecord): string {
-  fs.mkdirSync(HISTORY_DIR, { recursive: true });
+export function writeTelemetryRecordTo(dir: string, record: TelemetryRecord): string {
+  fs.mkdirSync(dir, { recursive: true });
 
   let filename = `build-${record.commitSha}.json`;
   let attempt = 1;
-  while (fs.existsSync(path.join(HISTORY_DIR, filename))) {
+  while (fs.existsSync(path.join(dir, filename))) {
     attempt += 1;
     filename = `build-${record.commitSha}-${attempt}.json`;
   }
 
-  const outPath = path.join(HISTORY_DIR, filename);
+  const outPath = path.join(dir, filename);
   fs.writeFileSync(outPath, JSON.stringify(record, null, 2) + '\n');
   logger.info(`Wrote telemetry record: ${filename} (defectScore=${record.defectScore}, totalNodesFailed=${record.totalNodesFailed})`);
   return outPath;
+}
+
+/**
+ * Writes one immutable record per build to telemetry/history/. Never
+ * overwrites -- if a record for this commitSha already exists (e.g. a
+ * re-run of the same commit), a short numeric suffix is appended rather
+ * than clobbering history, since ARCHITECTURE.md's data-at-rest contract
+ * for telemetry/history/ is append-only.
+ */
+export function writeTelemetryRecord(record: TelemetryRecord): string {
+  return writeTelemetryRecordTo(HISTORY_DIR, record);
 }

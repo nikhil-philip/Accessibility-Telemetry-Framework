@@ -1,0 +1,18 @@
+{
+  "buildId": "stable-016",
+  "commitSha": "stable-016",
+  "branch": "experiment/stable-capability-cohort",
+  "triggeredBy": "manual",
+  "timestamp": "2026-04-16T00:00:00.000Z",
+  "wcagLevel": "AA",
+  "pagesScanned": 8,
+  "violationsBySeverity": {
+    "critical": 0,
+    "serious": 0,
+    "moderate": 2,
+    "minor": 1
+  },
+  "violationsByRule": [],
+  "defectScore": 5,
+  "totalNodesFailed": 3
+}

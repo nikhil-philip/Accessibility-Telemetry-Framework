@@ -17,6 +17,23 @@ interface CollectorInput {
 }
 
 /**
+ * The project's one authoritative severity-weighted score formula
+ * (ARCHITECTURE.md SS8.2: 10c + 5s + 2m + 1mi). Exported so any other
+ * module that needs a TelemetryRecord-compatible defectScore (e.g. a
+ * synthetic data generator) computes it from this single definition
+ * instead of re-declaring the weights -- pure extraction, no change in
+ * value for any existing caller.
+ */
+export function computeDefectScore(violationsBySeverity: ViolationsBySeverity): number {
+  return (
+    violationsBySeverity.critical * SEVERITY_WEIGHT.critical +
+    violationsBySeverity.serious * SEVERITY_WEIGHT.serious +
+    violationsBySeverity.moderate * SEVERITY_WEIGHT.moderate +
+    violationsBySeverity.minor * SEVERITY_WEIGHT.minor
+  );
+}
+
+/**
  * Raw axe-core output -> a schema-conformant TelemetryRecord. This is pure
  * data transformation (no I/O, no Playwright API) so it's trivial to unit
  * test in isolation from a live browser.
@@ -57,11 +74,7 @@ export function collectTelemetry(input: CollectorInput): TelemetryRecord {
   const totalNodesFailed =
     violationsBySeverity.critical + violationsBySeverity.serious + violationsBySeverity.moderate + violationsBySeverity.minor;
 
-  const defectScore =
-    violationsBySeverity.critical * SEVERITY_WEIGHT.critical +
-    violationsBySeverity.serious * SEVERITY_WEIGHT.serious +
-    violationsBySeverity.moderate * SEVERITY_WEIGHT.moderate +
-    violationsBySeverity.minor * SEVERITY_WEIGHT.minor;
+  const defectScore = computeDefectScore(violationsBySeverity);
 
   return {
     buildId: input.buildId,
