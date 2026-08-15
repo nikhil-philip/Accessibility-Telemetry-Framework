@@ -1,0 +1,147 @@
+name: Accessibility Quality Gate
+
+# ARCHITECTURE.md Layer 1 (CI/CD Orchestration). This workflow only
+# sequences existing, already-implemented layers (L2 Playwright test
+# orchestration, L3 axe-core scanning, L4 telemetry, L5 SPC, L6 the Quality
+# Gate Engine, L7 the dashboard generator) -- it re-derives no statistics
+# and duplicates no gate policy. See scripts/run-quality-gate.ts for the
+# one piece of new logic this layer adds: turning the existing evaluator's
+# GateVerdict into a CI exit code.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Cancel a superseded run on the same branch/PR rather than let two runs
+# race each other's telemetry writes.
+concurrency:
+  group: accessibility-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Read-only by default -- this workflow never pushes, comments, or deploys;
+# it only reads the checked-out repo and uploads artifacts.
+permissions:
+  contents: read
+
+jobs:
+  accessibility-quality-gate:
+    name: Scan, analyze, and gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers (Chromium)
+        # Only the "chromium" project is configured (playwright.config.ts) --
+        # Firefox/WebKit are never launched, so there's no reason to install them.
+        run: npx playwright install --with-deps chromium
+
+      - name: Compile TypeScript
+        # A dedicated, first compile step: a type error must show up here,
+        # not be buried inside whichever downstream step happens to touch it.
+        run: npx tsc -p tsconfig.json
+
+      - name: Verify SPC engine (regression guard)
+        run: npm run verify:spc
+
+      - name: Verify Quality Gate engine (regression guard)
+        run: npm run verify:gates
+
+      - name: Verify Experiment A dataset (baseline methodology study)
+        run: npm run verify:experiment
+
+      - name: Verify Experiment B dataset (Cpk capability study)
+        run: npm run verify:stable-cohort
+
+      - name: Verify CI adapter and workflow structure
+        run: npm run verify:ci
+
+      - name: Verify dashboard data layer (regression guard)
+        # Deliberately runs here, before the scan step below appends a new
+        # build to telemetry/history/ -- one of this suite's own checks
+        # (verify-dashboard.ts) asserts the original 4 committed production
+        # records are still exactly 4 and unmutated, which is only true
+        # before this run's own new record exists. The freshly-generated
+        # dashboard/ output (reflecting the new build) is validated later
+        # in a real browser by the "Dashboard smoke test" / "Dashboard
+        # accessibility check" steps instead.
+        run: npm run verify:dashboard
+
+      - name: Run accessibility scan (ShopSmart) and collect telemetry
+        # playwright.config.ts's webServer boots ShopSmart automatically
+        # (apps/shopsmart, no external services/credentials required).
+        # src/telemetry/reporter.ts writes telemetry/history/build-<sha>.json
+        # using GitHub Actions' own GITHUB_RUN_ID / GITHUB_SHA /
+        # GITHUB_EVENT_NAME / CI env vars -- already wired, nothing CI-specific
+        # to configure here. This suite records what axe-core finds; it does
+        # not itself assert zero violations (see tests/accessibility/all-pages.a11y.spec.ts) --
+        # the Quality Gate step below is what decides PASS/WARN/FAIL.
+        run: npm run test:a11y
+
+      - name: Evaluate Quality Gate
+        id: gate
+        # Reads telemetry/history/ as it stands right now -- including the
+        # build record the previous step just wrote -- via the existing,
+        # unmodified evaluateFromDisk() (src/gates/qualityGateEvaluator.ts).
+        # Exits non-zero only on FAIL; PASS and WARN both exit 0 (project
+        # policy: WARN must not block CI). This is the one step allowed to
+        # fail the job.
+        run: npm run gate:ci
+
+      # ---------------------------------------------------------------
+      # Everything from here on runs with `if: always()`. This is a
+      # deliberate, explained exception to "don't use continue-on-error /
+      # don't hide failures": the job's overall status is already FAILED
+      # by the gate step above if the gate returned FAIL, and nothing
+      # below can undo that. These steps exist so a blocked build still
+      # produces the dashboard/telemetry evidence an engineer needs to
+      # see *why* -- not to mask the failure.
+      # ---------------------------------------------------------------
+
+      - name: Generate dashboard
+        if: always()
+        run: npm run generate:dashboard
+
+      - name: Dashboard smoke test
+        if: always()
+        run: npm run test:dashboard
+
+      - name: Dashboard accessibility check (axe-core, dogfooding)
+        if: always()
+        run: npm run test:dashboard:a11y
+
+      - name: Upload quality evidence (dashboard, telemetry, gate verdict, reports)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-evidence-${{ github.run_id }}
+          path: |
+            dashboard/
+            telemetry/aggregated/
+            telemetry/history/
+            reports/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload Playwright traces (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces-${{ github.run_id }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 30
