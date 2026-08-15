@@ -12,7 +12,13 @@
  *  3. The known, previously-validated results (Experiment A's PASS/WARN/FAIL
  *     counts, Experiment B's Cpu) still hold through the dashboard's data
  *     path -- a regression guard tying this layer back to the project's
- *     already-recorded findings.
+ *     already-recorded findings. Experiment A/B are frozen, fixed-size
+ *     research cohorts, so asserting their exact size/statistics is a
+ *     genuine invariant. Production telemetry/history/ is append-only by
+ *     design (ARCHITECTURE.md) -- a real CI run legitimately adds new
+ *     records -- so its regression guard instead asserts the original 4
+ *     baseline builds (by commit SHA) are still present and the count has
+ *     never shrunk below 4, not that the count is fixed at 4.
  *  4. scripts/generate-dashboard.ts's on-disk output (dashboard/, telemetry/aggregated/)
  *     is well-formed and internally consistent.
  *
@@ -44,6 +50,24 @@ function check(label: string, condition: boolean, detail?: unknown): void {
 }
 
 const HISTORY_DIR = repoPath('telemetry/history');
+
+/**
+ * The four production builds telemetry/history/ was seeded with (ShopSmart
+ * Builds 1-5's worst/remediated states -- see docs/violations/). Unlike
+ * Experiment A/B (frozen, fixed-size research cohorts -- their `=== 30`
+ * checks below are genuine invariants), production telemetry/history/ is
+ * append-only by design (ARCHITECTURE.md): a real CI run legitimately adds
+ * a 5th, 6th, ... record. So the correct regression guard here is "the
+ * original baseline is still present and un-mutated", not "there are
+ * exactly 4 records" -- the latter would fail the very first time L1 CI
+ * does its job.
+ */
+const ORIGINAL_BASELINE_COMMIT_SHAS = [
+  '66a0c96c269e114d0a2f73eb203c4683baf00ea7',
+  'a8169fceefcc8356403a1ac1c0dcc549fc9903f9',
+  'b4f83d0ba34fcf5d751b1d461d6a25f8dfc507a4',
+  'de20fcf2b2ef76cf2b3894dd3759eab883f54a94',
+];
 const EXPERIMENT_A_DIR = repoPath(EXPERIMENT_DIR_RELATIVE);
 const STABLE_DIR = repoPath(STABLE_COHORT_DIR_RELATIVE);
 const DASHBOARD_DIR = repoPath('dashboard');
@@ -86,7 +110,14 @@ console.log('\n=== 2. Production section matches calling L4/L5/L6 directly (no r
   check('production.history matches loadTelemetryHistory() exactly', JSON.stringify(data.production.history) === JSON.stringify(expectedHistory));
   check('production.spcReport matches computeSpcReport(history) exactly (modulo generatedAt)', stableJson(data.production.spcReport) === stableJson(expectedSpc));
   check('production.gateVerdict matches evaluateLatestBuild(history) exactly (modulo generatedAt)', stableJson(data.production.gateVerdict) === stableJson(expectedVerdict));
-  check('production telemetry/history/ has the required 4 original records, unchanged', data.production.history.length === 4, data.production.history.length);
+  // Append-only invariant (not a frozen-dataset invariant -- see
+  // ORIGINAL_BASELINE_COMMIT_SHAS above): the baseline can only grow, and
+  // every original record must still be identifiable by commit SHA,
+  // however many newer builds now sit alongside it.
+  check('production telemetry/history/ has at least the 4 original baseline records', data.production.history.length >= 4, data.production.history.length);
+  const presentShas = new Set(data.production.history.map((r) => r.commitSha));
+  const missingBaselineShas = ORIGINAL_BASELINE_COMMIT_SHAS.filter((sha) => !presentShas.has(sha));
+  check('all 4 original baseline build SHAs are still present in production history', missingBaselineShas.length === 0, missingBaselineShas);
 }
 
 // --- 3. Experiment A section matches runAnalysis()/summarizeResults() directly ---
