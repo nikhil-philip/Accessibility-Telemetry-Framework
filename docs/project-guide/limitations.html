@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Limitations — Project Guide</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">Accessibility Telemetry Framework</div>
+    <div class="brand-sub">Project Guide &amp; Viva Preparation</div>
+    <input id="search-box" type="search" placeholder="Search the guide…" autocomplete="off" />
+    <div id="search-results"></div>
+    <nav>
+      <ul><li><a href="index.html">Home</a></li></ul>
+      <div class="group-label">Understand the System</div>
+      <ul>
+        <li><a href="architecture.html">Architecture (L1–L7)</a></li>
+        <li><a href="telemetry.html">Telemetry</a></li>
+        <li><a href="spc.html">SPC From Zero</a></li>
+        <li><a href="experiments.html">Experiments A &amp; B</a></li>
+        <li><a href="gates.html">Quality Gates</a></li>
+        <li><a href="cicd.html">CI/CD Pipeline</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+      <div class="group-label">Use It</div>
+      <ul>
+        <li><a href="testing.html">Commands</a></li>
+        <li><a href="demo.html">Reviewer Demo Script</a></li>
+      </ul>
+      <div class="group-label">Prepare for Viva</div>
+      <ul>
+        <li><a href="cheatsheet.html">Cheat Sheet</a></li>
+        <li><a href="questions.html">Reviewer Q&amp;A (40+)</a></li>
+        <li><a href="tough-questions.html">Tough Questions</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="glossary.html">Glossary</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="page-kicker">Academic honesty</div>
+    <h1>Limitations</h1>
+    <p class="lede">Every limitation below is real — checked against the actual code and data, not hedging language added for effect. Naming these clearly in a viva is a strength, not a weakness: it shows you understand the boundary between what's proven and what's assumed.</p>
+
+    <div id="limitations-list">
+
+    <div class="box box-limitation">
+      <div class="box-label">1. The core SPC methodology is validated on synthetic data, not real production history</div>
+      <p>Real production telemetry (<code>telemetry/history/</code>) currently has 4 records — far too few to validate a statistical detection methodology. Experiments A and B, which supply the real validated results in this guide (regression detection, Rule 1 behavior, Cpu≈2.9811), are both seeded, reproducible, synthetic cohorts.</p>
+      <p><strong>Why it matters:</strong> the strongest possible research claim — that this methodology reduces false positives/negatives versus a static threshold, on real accessibility telemetry — cannot yet be made with confidence.</p>
+      <p><strong>Why the project is still useful:</strong> it proves the machinery is implemented correctly, produces sensible and checkable results under known conditions, and is ready to be evaluated against real data the moment enough exists.</p>
+      <p><strong>Future improvement:</strong> run the real CI pipeline against a real, evolving codebase for months, and re-evaluate RQ1–RQ3 against that accumulated history.</p>
+    </div>
+
+    <div class="box box-limitation">
+      <div class="box-label">2. 30-build cohorts and finite samples</div>
+      <p>Both experiment cohorts contain exactly 30 builds. That's enough to exercise every qualitatively different scenario the gate policy cares about, but not enough for a strong statistical power claim about detection rates.</p>
+      <p><strong>Why it matters:</strong> a reviewer could reasonably ask whether 30 builds is a large enough sample to trust any percentage-based claim (e.g., "X% of regressions detected").</p>
+      <p><strong>Why the project is still useful:</strong> the experiments were designed as methodology validation (does the mechanism work correctly) rather than a statistical power study (how often does it work) — a smaller, controlled sample is appropriate for the former.</p>
+      <p><strong>Future improvement:</strong> larger synthetic cohorts, or — better — real accumulated history, before making any percentage-based detection-rate claim.</p>
+    </div>
+
+    <div class="box box-limitation">
+      <div class="box-label">3. The 15-build trailing window was not empirically tuned</div>
+      <p><code>DEFAULT_TRAILING_WINDOW_SIZE = 15</code> in <code>src/spc/experimentAnalysis.ts</code> is a reasonable SPC rule-of-thumb default, not the output of a sweep over candidate window sizes against real or synthetic data to find an optimum.</p>
+      <p><strong>Why it matters:</strong> a different window size might trade off responsiveness and stability differently; 15 is defensible, not provably optimal.</p>
+      <p><strong>Why the project is still useful:</strong> Experiment A's comparative analysis (expanding vs. trailing) is exactly the kind of study that could be repeated with different window sizes once more data exists.</p>
+      <p><strong>Future improvement:</strong> a parameter sweep over window size against real accumulated telemetry, once available.</p>
+    </div>
+
+    <div class="box box-limitation">
+      <div class="box-label">4. USL = 40 is an illustrative placeholder, not an organizationally derived specification limit</div>
+      <p>40 is copied from <code>ARCHITECTURE.md</code>'s Appendix B example and reused unchanged in Experiment B (<code>STABLE_COHORT_USL</code>) and the dashboard (<code>EXPERIMENT_B_USL</code>), specifically to avoid picking a number that manufactures a favorable Cpu.</p>
+      <p><strong>Why it matters:</strong> in a real deployment, the USL should come from an actual quality-policy conversation with real stakeholders — this project doesn't simulate that conversation.</p>
+      <p><strong>Why the project is still useful:</strong> the capability-analysis machinery itself (the formula, the gate integration, the "capable" threshold) is correctly implemented and validated regardless of which USL is plugged in.</p>
+      <p><strong>Future improvement:</strong> if deployed against a real project, USL should be set by whoever owns accessibility quality policy for that project, not inherited from this dissertation's example.</p>
+    </div>
+
+    <div class="box box-limitation">
+      <div class="box-label">5. The I-MR chart's near-normality assumption is not empirically checked against this project's own data</div>
+      <p>ARCHITECTURE.md §9 names this directly as RQ3: does the weighted-score transform make the defect score's distribution defensibly close to normal, as I-MR charts assume, versus its likely-Poisson-like raw form? This project implements the chart; it does not report a distributional test of the actual telemetry against that assumption.</p>
+      <p><strong>Why it matters:</strong> if the assumption doesn't hold well in practice, the stated "3-sigma" control limits may not carry their textbook false-alarm-rate interpretation.</p>
+      <p><strong>Why the project is still useful:</strong> the weighted-score transform is a principled attempt to make the assumption more defensible than raw counts would be, even without a formal statistical test confirming it.</p>
+      <p><strong>Future improvement:</strong> once real history accumulates, run a normality test (e.g. Shapiro-Wilk) against the real <code>defectScore</code> series and report the result — this is explicitly RQ3's open question.</p>
+    </div>
+
+    <div class="box box-limitation">
+      <div class="box-label">6. Capability analysis assumes single-regime stability, which most real projects won't cleanly satisfy</div>
+      <p>Experiment B proves Cpk works correctly under an idealized single stable regime. A real project's accessibility history is unlikely to be that clean — it will have real regime changes (new features, refactors, team turnover) that make "when is it valid to compute Cpk" a genuinely hard, ongoing judgment call, not a one-time decision.</p>
+      <p><strong>Why it matters:</strong> naively computing Cpk on real, messy history risks the exact misinterpretation Experiment A's exclusion was designed to avoid.</p>
+      <p><strong>Why the project is still useful:</strong> the framework already demonstrates the correct discipline (don't compute Cpk on known-non-stationary data) — that discipline just needs to be applied by a human judgment call in real deployment, not automated away.</p>
+      <p><strong>Future improvement:</strong> an automated stationarity/regime-change check that gates whether Cpk is even computed, rather than relying on a human to notice.</p>
+    </div>
+
+    <div class="box box-limitation">
+      <div class="box-label">7. SPC rules can produce false positives — demonstrated, not just theoretical</div>
+      <p>Experiment A's "Rule 1 stuck" result is a real, observed false-positive-like behavior: under expanding history, one stale early outlier (build 1) kept triggering "beyond 3-sigma" for 16 consecutive builds, for a reason unrelated to any live problem.</p>
+      <p><strong>Why it matters:</strong> a team using this gate under expanding-history analysis could see a persistent FAIL/WARN for a reason that isn't actually actionable.</p>
+      <p><strong>Why the project is still useful:</strong> the mechanism is fully explainable and visible (the dashboard shows exactly which point triggered the rule), which is strictly better than an opaque false positive with no diagnosis path — and the trailing-window alternative demonstrably resolves it.</p>
+      <p><strong>Future improvement:</strong> consider trailing-window analysis, or an automated "stale outlier" detector, as the default for production once enough history exists to make that choice meaningfully.</p>
+    </div>
+
+    <div class="box box-limitation">
+      <div class="box-label">8. No long-term production history exists</div>
+      <p>This is the root cause behind several other limitations on this page. The project is young; real telemetry has accumulated for only a handful of builds.</p>
+      <p><strong>Why it matters:</strong> almost every claim about the methodology's real-world usefulness (not just its correctness) is currently unverifiable.</p>
+      <p><strong>Why the project is still useful:</strong> the pipeline is production-ready to start accumulating that history the moment it's deployed against a real, actively-developed codebase.</p>
+      <p><strong>Future improvement:</strong> time — there's no substitute for actually running the pipeline for months against a real project.</p>
+    </div>
+
+    <div class="box box-limitation">
+      <div class="box-label">9. CI environment differences</div>
+      <p>Development happened on Windows; CI runs on <code>ubuntu-latest</code>. <code>src/telemetry/reporter.ts</code> has a specific Windows workaround — a hardcoded list of common Git install paths — because some Windows shells don't expose <code>git</code> on PATH for spawned child processes even when it's installed.</p>
+      <p><strong>Why it matters:</strong> that fallback list is not an exhaustive PATH resolution; on an unusual Windows setup it could still fail to resolve <code>commitSha</code>/<code>branch</code>, falling back to <code>'unknown'</code> rather than crashing.</p>
+      <p><strong>Why the project is still useful:</strong> the failure mode is safe (a placeholder value, not a crash), and CI itself — where it matters most for the gate to work reliably — runs on Linux where this workaround isn't needed.</p>
+      <p><strong>Future improvement:</strong> a more general PATH-resolution strategy, or documenting the Git requirement explicitly for local Windows use.</p>
+    </div>
+
+    <div class="box box-limitation">
+      <div class="box-label">10. Chromium-only browser coverage</div>
+      <p>Both the ShopSmart accessibility scan (CI installs only <code>chromium</code>) and the dashboard's own tests (<code>playwright.dashboard.config.ts</code> declares only a Desktop Chrome project) run on a single browser engine.</p>
+      <p><strong>Why it matters:</strong> Firefox- or WebKit-specific rendering or accessibility-tree differences would not be caught, even though ARCHITECTURE.md §7 cites cross-browser support as a reason Playwright was chosen over Puppeteer.</p>
+      <p><strong>Why the project is still useful:</strong> Chromium/axe-core coverage is still meaningful — most real-world accessibility defects are engine-agnostic (missing alt text, bad ARIA, poor contrast) — and the architecture supports adding more browser projects without any change to L4–L7.</p>
+      <p><strong>Future improvement:</strong> add Firefox and WebKit projects to both Playwright configs once CI time budget allows.</p>
+    </div>
+
+    <div class="box box-limitation">
+      <div class="box-label">11. Severity weights (10/5/2/1) and CUSUM constants are policy defaults, not empirically derived</div>
+      <p>Both the defect-score weighting and the CUSUM <code>k</code>/<code>h</code> multipliers follow common, documented conventions rather than being tuned against this project's own telemetry.</p>
+      <p><strong>Why it matters:</strong> a different weighting or a different CUSUM sensitivity could change which builds trigger a WARN or FAIL, and there's no empirical evidence these specific numbers are the right ones for accessibility telemetry specifically (as opposed to generic software defect data).</p>
+      <p><strong>Why the project is still useful:</strong> they're reasonable, industry-standard starting points, applied consistently and transparently (visible in <code>gatePolicies.ts</code> and <code>driftDetection.ts</code> as plain data, not hidden).</p>
+      <p><strong>Future improvement:</strong> tune both against real accumulated telemetry once available.</p>
+    </div>
+
+    <div class="box box-limitation">
+      <div class="box-label">12. <code>ARCHITECTURE.md</code> has drifted from the implementation in several small, named ways</div>
+      <p>See <a href="architecture.html#discrepancies">Architecture → Discrepancies</a> for the full table — no <code>spc.config.ts</code>, no default 25-build window, richer rule coverage than described, extra undocumented detectors, and file-naming differences.</p>
+      <p><strong>Why it matters:</strong> a reviewer who read the architecture document before the code could reasonably ask about any of these mismatches.</p>
+      <p><strong>Why the project is still useful:</strong> none of the drift represents a correctness bug — every regression-guard script passes against the actual code — and being able to name the drift accurately is itself evidence of understanding the real system.</p>
+      <p><strong>Future improvement:</strong> a documentation pass reconciling <code>ARCHITECTURE.md</code> with the as-built system (this guide is, in effect, a first step toward that).</p>
+    </div>
+
+    <div class="box box-limitation">
+      <div class="box-label">13. The ShopSmart violation catalog's own documentation has an off-by-one</div>
+      <p><code>docs/violations/catalog.md</code> states "80" seeded violation instances; directly counting <code>instanceId</code> entries in <code>docs/violations/catalog.json</code> gives 81.</p>
+      <p><strong>Why it matters:</strong> it's a small but real inconsistency in the project's own ground-truth documentation.</p>
+      <p><strong>Why the project is still useful:</strong> the underlying data (<code>catalog.json</code>) is internally consistent and is what the build manifests actually cross-check against — the discrepancy is in one summary sentence in prose, not in the data used by any code.</p>
+      <p><strong>Future improvement:</strong> a one-line fix to <code>catalog.md</code>'s prose count.</p>
+    </div>
+
+    <div class="box box-limitation">
+      <div class="box-label">14. No automated detection of a changed measurement definition</div>
+      <p>If the WCAG tag set, the axe-core version, or the scanned route list changes, <code>defectScore</code> can shift for reasons unrelated to any real accessibility regression — and the SPC engine has no way to know its own measurement definition changed underneath it.</p>
+      <p><strong>Why it matters:</strong> this is both an honest robustness gap and, more pointedly, an unaddressed way the gate could be gamed (see <a href="questions.html#cat-difficult">Reviewer Q&amp;A → Difficult, Q51</a>).</p>
+      <p><strong>Why the project is still useful:</strong> configuration changes go through the same version-controlled PR review as any other code change, so the change itself is at least visible in a diff, even if not automatically flagged to the SPC engine.</p>
+      <p><strong>Future improvement:</strong> version the measurement configuration itself and have the SPC engine treat a version change as a regime boundary, similar to how Experiment A's phases are handled.</p>
+    </div>
+
+    <div class="box box-limitation">
+      <div class="box-label">15. JSON-file telemetry persistence doesn't scale indefinitely</div>
+      <p>Named directly in ARCHITECTURE.md §9's threats to validity: one JSON file per build in <code>telemetry/history/</code> is fine at dissertation scale, but won't scale cleanly to a project with thousands of historical builds.</p>
+      <p><strong>Why it matters:</strong> <code>loadTelemetryHistory()</code> reads every file in the directory on every SPC computation — a real, long-running project would eventually pay a real I/O cost for this.</p>
+      <p><strong>Why the project is still useful:</strong> JSON persistence gives a full audit trail, human readability, and diffability in pull requests essentially for free, at a scale (dozens to low hundreds of builds) this project actually operates at.</p>
+      <p><strong>Future improvement:</strong> a real time-series store (SQLite/Postgres), as ARCHITECTURE.md §7 already names as the considered, deliberately-deferred alternative.</p>
+    </div>
+
+    </div>
+
+    <div class="footer-note">Every limitation above is checked against the actual repository — none are hypothetical hedging. See <a href="tough-questions.html">Tough Questions</a> for how to discuss several of these live, and <a href="architecture.html#discrepancies">Architecture → Discrepancies</a> for the full documentation-drift table.</div>
+  </main>
+</div>
+<script src="script.js"></script>
+</body>
+</html>

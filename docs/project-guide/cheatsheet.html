@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cheat Sheet — Project Guide</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">Accessibility Telemetry Framework</div>
+    <div class="brand-sub">Project Guide &amp; Viva Preparation</div>
+    <input id="search-box" type="search" placeholder="Search the guide…" autocomplete="off" />
+    <div id="search-results"></div>
+    <nav>
+      <ul><li><a href="index.html">Home</a></li></ul>
+      <div class="group-label">Understand the System</div>
+      <ul>
+        <li><a href="architecture.html">Architecture (L1–L7)</a></li>
+        <li><a href="telemetry.html">Telemetry</a></li>
+        <li><a href="spc.html">SPC From Zero</a></li>
+        <li><a href="experiments.html">Experiments A &amp; B</a></li>
+        <li><a href="gates.html">Quality Gates</a></li>
+        <li><a href="cicd.html">CI/CD Pipeline</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+      <div class="group-label">Use It</div>
+      <ul>
+        <li><a href="testing.html">Commands</a></li>
+        <li><a href="demo.html">Reviewer Demo Script</a></li>
+      </ul>
+      <div class="group-label">Prepare for Viva</div>
+      <ul>
+        <li><a href="cheatsheet.html">Cheat Sheet</a></li>
+        <li><a href="questions.html">Reviewer Q&amp;A (40+)</a></li>
+        <li><a href="tough-questions.html">Tough Questions</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="glossary.html">Glossary</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="page-kicker">If I forget everything else</div>
+    <h1>Cheat Sheet</h1>
+    <p class="lede">One page. Reread this five minutes before you walk in.</p>
+
+    <h2>The Project, One Sentence</h2>
+    <p style="font-size:1.15rem;font-family:var(--serif)">"I apply Statistical Process Control to accessibility defect scores across CI builds, so a quality gate can tell ordinary noise apart from a real regression, instead of using a fixed violation-count threshold."</p>
+
+    <h2>The Seven Layers</h2>
+    <div class="table-wrap"><table>
+      <tbody>
+      <tr><td><strong>L1</strong></td><td>CI/CD Orchestration</td><td><code>.github/workflows/accessibility-ci.yml</code></td></tr>
+      <tr><td><strong>L2</strong></td><td>Test Orchestration</td><td><code>playwright.config.ts</code>, <code>tests/accessibility/</code></td></tr>
+      <tr><td><strong>L3</strong></td><td>Accessibility Scanning</td><td><code>src/utils/accessibilityScanner.ts</code></td></tr>
+      <tr><td><strong>L4</strong></td><td>Telemetry</td><td><code>src/telemetry/</code>, <code>telemetry/history/</code></td></tr>
+      <tr><td><strong>L5</strong></td><td>SPC Analytics</td><td><code>src/spc/</code></td></tr>
+      <tr><td><strong>L6</strong></td><td>Quality Gate</td><td><code>src/gates/</code></td></tr>
+      <tr><td><strong>L7</strong></td><td>Dashboard</td><td><code>src/dashboard/</code></td></tr>
+      </tbody>
+    </table></div>
+
+    <h2>Key Numbers</h2>
+    <div class="table-wrap"><table>
+      <tbody>
+      <tr><td>defectScore formula</td><td><code>10×critical + 5×serious + 2×moderate + 1×minor</code></td></tr>
+      <tr><td>Control limits</td><td><code>UCL = X̄ + 2.6595×MR̄</code> (≈3σ̂); <code>σ̂ = MR̄/1.128</code></td></tr>
+      <tr><td>Gate: defect score</td><td>WARN ≥30, FAIL ≥50</td></tr>
+      <tr><td>Gate: critical/serious</td><td>any critical → FAIL; &gt;5 serious → FAIL</td></tr>
+      <tr><td>Gate: capability</td><td>WARN if Cpu &lt;1.33, FAIL if Cpu &lt;1.0</td></tr>
+      <tr><td>Exit codes</td><td>PASS→0, WARN→0, FAIL→1</td></tr>
+      <tr><td>Trailing window size</td><td>15 builds (Experiment A comparative analysis only)</td></tr>
+      <tr><td>Experiment A</td><td>30 builds, 5 phases, regression at build 23 (7→46), seed 20260815</td></tr>
+      <tr><td>Experiment A results</td><td>Expanding: 1 PASS/3 WARN/26 FAIL. Trailing(15): 1 PASS/5 WARN/24 FAIL.</td></tr>
+      <tr><td>Experiment B</td><td>30 builds, 1 stable regime, USL=40, Cpu≈2.9811, seed 71430901</td></tr>
+      <tr><td>ShopSmart catalog</td><td>24 seeded axe rules, 81 seeded violation instances (project's own <code>catalog.md</code> says 80 — a documented internal discrepancy)</td></tr>
+      <tr><td>Production telemetry</td><td>4 committed builds in <code>telemetry/history/</code></td></tr>
+      <tr><td>Git</td><td>16 commits total, HEAD <code>aca60a0</code>, branch <code>main</code>, clean tree</td></tr>
+      </tbody>
+    </table></div>
+
+    <h2>SPC Meaning, One Line Each</h2>
+    <ul>
+      <li><strong>Common cause</strong> — normal noise, leave it alone.</li>
+      <li><strong>Special cause</strong> — a real signal, investigate it.</li>
+      <li><strong>UCL/LCL</strong> — the lines a point almost never crosses by chance alone.</li>
+      <li><strong>WECO/Nelson Rule 1</strong> — one point beyond 3σ.</li>
+      <li><strong>Trend</strong> — several builds moving the same direction.</li>
+      <li><strong>Regression spike</strong> — one big same-build jump for the worse.</li>
+      <li><strong>CUSUM/drift</strong> — a small, persistent lean building up quietly.</li>
+      <li><strong>Cpu/Cpk</strong> — is the process's typical level comfortably inside spec, not just its worst moment.</li>
+    </ul>
+
+    <h2>Telemetry, Gate, Dashboard — One Line Each</h2>
+    <ul>
+      <li><strong>Telemetry</strong> — one immutable JSON record per build; never rewritten, only added to.</li>
+      <li><strong>PASS</strong> — zero gate reasons triggered.</li>
+      <li><strong>WARN</strong> — at least one soft signal, zero hard ones; doesn't block CI.</li>
+      <li><strong>FAIL</strong> — at least one hard signal (critical defect, ≥50 score, 3σ breach, regression spike, or Cpu&lt;1.0); blocks CI.</li>
+      <li><strong>Dashboard</strong> — reads and displays only; computes nothing itself, enforced by <code>verify-dashboard.ts</code>.</li>
+      <li><strong>CI</strong> — read-only against the repo; telemetry from CI leaves only as a 30-day artifact, never a commit.</li>
+    </ul>
+
+    <h2>Why Cpk Is Separate — One Line</h2>
+    <p>Experiment A is deliberately five different regimes, so a capability number computed on it would be statistically meaningless; Experiment B is deliberately one stable regime, built specifically so Cpk's stability assumption actually holds.</p>
+
+    <h2>Main Limitations — Say These Plainly</h2>
+    <ul>
+      <li>Only 4 real production builds — nowhere near enough for the SPC methodology to be proven on real data yet.</li>
+      <li>The 10/5/2/1 severity weights and the USL=40 example are policy choices, not empirically derived from this project's own data.</li>
+      <li>CUSUM's k/h constants are textbook defaults, not tuned against this project's telemetry.</li>
+      <li>No long-term production history exists yet to validate against.</li>
+      <li>ARCHITECTURE.md (the planning document) has drifted from the implementation in several small, named ways — see <a href="architecture.html#discrepancies">Architecture → Discrepancies</a>.</li>
+    </ul>
+
+    <div class="footer-note">Every number on this page is sourced from the corresponding topic page — follow the sidebar for full detail and citations.</div>
+  </main>
+</div>
+<script src="script.js"></script>
+</body>
+</html>

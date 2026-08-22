@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture (L1–L7) — Project Guide</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">Accessibility Telemetry Framework</div>
+    <div class="brand-sub">Project Guide &amp; Viva Preparation</div>
+    <input id="search-box" type="search" placeholder="Search the guide…" autocomplete="off" />
+    <div id="search-results"></div>
+    <nav>
+      <ul><li><a href="index.html">Home</a></li></ul>
+      <div class="group-label">Understand the System</div>
+      <ul>
+        <li><a href="architecture.html">Architecture (L1–L7)</a></li>
+        <li><a href="telemetry.html">Telemetry</a></li>
+        <li><a href="spc.html">SPC From Zero</a></li>
+        <li><a href="experiments.html">Experiments A &amp; B</a></li>
+        <li><a href="gates.html">Quality Gates</a></li>
+        <li><a href="cicd.html">CI/CD Pipeline</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+      <div class="group-label">Use It</div>
+      <ul>
+        <li><a href="testing.html">Commands</a></li>
+        <li><a href="demo.html">Reviewer Demo Script</a></li>
+      </ul>
+      <div class="group-label">Prepare for Viva</div>
+      <ul>
+        <li><a href="cheatsheet.html">Cheat Sheet</a></li>
+        <li><a href="questions.html">Reviewer Q&amp;A (40+)</a></li>
+        <li><a href="tough-questions.html">Tough Questions</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="glossary.html">Glossary</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="page-kicker">System Design</div>
+    <h1>Architecture: The Seven Layers</h1>
+    <p class="lede">
+      The project is organized as seven layers (L1–L7), each handing a well-defined artifact — usually a JSON file
+      on disk — to the next. This is what makes the SPC and gating stages testable on their own, without a browser.
+      The application being tested (ShopSmart) sits outside the numbering as "L0."
+    </p>
+
+    <div class="toc-inline">
+      <strong>On this page</strong>
+      <ul>
+        <li><a href="#big-picture">Layer diagram</a></li>
+        <li><a href="#l1-l7-table">L1–L7 responsibility table</a></li>
+        <li><a href="#layers-vs-display">Who calculates vs. who only displays</a></li>
+        <li><a href="#data-flow">One build, file by file</a></li>
+        <li><a href="#discrepancies">Where the code differs from the architecture document</a></li>
+      </ul>
+    </div>
+
+    <h2 id="big-picture">Layer Diagram</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 980 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Seven layer architecture diagram">
+        <defs>
+          <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--text-muted)"></path>
+          </marker>
+        </defs>
+        <style>
+          .lb rect { fill: var(--bg-panel); stroke: var(--border); stroke-width: 1.4; rx: 8; }
+          .lb .lab { font-family: var(--sans); font-weight: 700; font-size: 12.5px; fill: var(--accent-dark); }
+          .lb .file { font-family: var(--mono); font-size: 10.5px; fill: var(--text-muted); }
+          .lb .desc { font-family: var(--sans); font-size: 10.5px; fill: var(--text); }
+          .lbl { font-family: var(--sans); font-size: 10px; fill: #fff; font-weight: 700; }
+          .tag rect { fill: var(--accent); rx: 4; }
+          .edge2 { stroke: var(--text-muted); stroke-width: 1.4; fill: none; marker-end: url(#arrow2); }
+        </style>
+
+        <g class="lb"><rect x="330" y="10" width="320" height="42"></rect>
+          <text x="345" y="35" class="desc">L0 — Application Under Test: <tspan class="file">apps/shopsmart/</tspan></text></g>
+        <path class="edge2" d="M490,52 V80"></path>
+
+        <g class="lb"><rect x="20" y="80" width="940" height="60"></rect>
+          <g class="tag"><rect x="34" y="93" width="26" height="16"></rect><text x="47" y="105" text-anchor="middle" class="lbl">L1</text></g>
+          <text x="70" y="103" class="lab">CI/CD Orchestration</text>
+          <text x="70" y="120" class="desc">Triggers the pipeline, sequences every layer, publishes the gate verdict as a status check.</text>
+          <text x="70" y="134" class="file">.github/workflows/accessibility-ci.yml · scripts/run-quality-gate.ts · src/gates/ciAdapter.ts</text></g>
+        <path class="edge2" d="M490,140 V166"></path>
+
+        <g class="lb"><rect x="20" y="166" width="940" height="60"></rect>
+          <g class="tag"><rect x="34" y="179" width="26" height="16"></rect><text x="47" y="191" text-anchor="middle" class="lbl">L2</text></g>
+          <text x="70" y="189" class="lab">Test Orchestration</text>
+          <text x="70" y="206" class="desc">Launches Chromium, navigates every route in the site registry, hosts the axe injection point.</text>
+          <text x="70" y="220" class="file">playwright.config.ts · tests/accessibility/*.spec.ts · src/fixtures/index.ts</text></g>
+        <path class="edge2" d="M490,226 V252"></path>
+
+        <g class="lb"><rect x="20" y="252" width="940" height="60"></rect>
+          <g class="tag"><rect x="34" y="265" width="26" height="16"></rect><text x="47" y="277" text-anchor="middle" class="lbl">L3</text></g>
+          <text x="70" y="275" class="lab">Accessibility Scanning Engine</text>
+          <text x="70" y="292" class="desc">Runs axe-core against each rendered page, scoped to WCAG 2.2 A/AA + best-practice tags.</text>
+          <text x="70" y="306" class="file">src/utils/accessibilityScanner.ts · src/config/axe.config.ts · src/config/sites.config.ts</text></g>
+        <path class="edge2" d="M490,312 V338"></path>
+
+        <g class="lb"><rect x="20" y="338" width="940" height="60"></rect>
+          <g class="tag"><rect x="34" y="351" width="26" height="16"></rect><text x="47" y="363" text-anchor="middle" class="lbl">L4</text></g>
+          <text x="70" y="361" class="lab">Telemetry Collection &amp; Persistence</text>
+          <text x="70" y="378" class="desc">Normalizes raw axe output into a schema-conformant record; appends it, never rewrites.</text>
+          <text x="70" y="392" class="file">src/telemetry/{schema,collector,writer,reporter}.ts · telemetry/history/*.json</text></g>
+        <path class="edge2" d="M490,398 V424"></path>
+
+        <g class="lb"><rect x="20" y="424" width="940" height="60"></rect>
+          <g class="tag"><rect x="34" y="437" width="26" height="16"></rect><text x="47" y="449" text-anchor="middle" class="lbl">L5</text></g>
+          <text x="70" y="447" class="lab">SPC Analytics Engine</text>
+          <text x="70" y="464" class="desc">I-MR control chart, WECO + Nelson rules, trend, regression-spike, CUSUM drift, Cpu capability.</text>
+          <text x="70" y="478" class="file">src/spc/{spcEngine,controlChart,westernElectricRules,nelsonRules,trendDetection,regressionSpikeDetection,driftDetection,capabilityAnalysis}.ts</text></g>
+        <path class="edge2" d="M490,484 V510"></path>
+
+        <g class="lb"><rect x="20" y="510" width="940" height="60"></rect>
+          <g class="tag"><rect x="34" y="523" width="26" height="16"></rect><text x="47" y="535" text-anchor="middle" class="lbl">L6</text></g>
+          <text x="70" y="533" class="lab">Quality Gate Engine</text>
+          <text x="70" y="550" class="desc">Applies a declarative policy to the latest point + SPC signals, returns PASS / WARN / FAIL.</text>
+          <text x="70" y="564" class="file">src/gates/{gatePolicies,qualityGateEvaluator,ciAdapter}.ts</text></g>
+        <path class="edge2" d="M490,570 V596"></path>
+
+        <g class="lb"><rect x="20" y="596" width="940" height="40"></rect>
+          <g class="tag"><rect x="34" y="606" width="26" height="16"></rect><text x="47" y="618" text-anchor="middle" class="lbl">L7</text></g>
+          <text x="70" y="616" class="lab">Dashboard &amp; Visualization</text>
+          <text x="330" y="616" class="file">src/dashboard/dashboardDataBuilder.ts · scripts/generate-dashboard.ts</text></g>
+      </svg>
+      <div class="diagram-caption">Every arrow is a file boundary (usually JSON on disk), not a function call — see §7 of ARCHITECTURE.md, "Technology Justification," for why this was a deliberate choice.</div>
+    </div>
+
+    <h2 id="l1-l7-table">Layer Responsibility Table</h2>
+    <div class="table-wrap">
+      <table>
+        <caption>Verified against the actual file tree, not just ARCHITECTURE.md's description of it.</caption>
+        <thead><tr>
+          <th>Layer</th><th>Name</th><th>Plain-English purpose</th><th>Technical purpose</th>
+          <th>Input</th><th>Output</th><th>Actual files</th>
+        </tr></thead>
+        <tbody>
+        <tr>
+          <td>L1</td><td>CI/CD Orchestration</td>
+          <td>The robot that runs everything automatically whenever code changes, and refuses to merge broken accessibility.</td>
+          <td>GitHub Actions workflow sequencing every other layer; converts a <code>GateVerdict</code> into a process exit code.</td>
+          <td>A push or pull request to <code>main</code>, or a manual trigger.</td>
+          <td>A required status check (success/failure) on the PR, plus uploaded evidence artifacts.</td>
+          <td><code>.github/workflows/accessibility-ci.yml</code>, <code>scripts/run-quality-gate.ts</code>, <code>scripts/verify-ci.ts</code>, <code>src/gates/ciAdapter.ts</code></td>
+        </tr>
+        <tr>
+          <td>L2</td><td>Test Orchestration</td>
+          <td>Opens a real (headless) browser and clicks through the demo shop's pages.</td>
+          <td>Playwright test runner launches Chromium, iterates the route registry, provides fixtures (page objects, <code>makeAxeBuilder</code>).</td>
+          <td>Route list, Playwright config.</td>
+          <td>A rendered DOM per route, ready for scanning.</td>
+          <td><code>playwright.config.ts</code>, <code>tests/accessibility/*.spec.ts</code>, <code>tests/auth.setup.ts</code>, <code>src/fixtures/index.ts</code></td>
+        </tr>
+        <tr>
+          <td>L3</td><td>Accessibility Scanning Engine</td>
+          <td>Reads the page like a screen reader / rule checker would, and lists what's wrong.</td>
+          <td><code>@axe-core/playwright</code> scan against a fixed WCAG tag set, one <code>AxeBuilder</code> constructor shared everywhere.</td>
+          <td>A rendered page.</td>
+          <td>Raw axe-core violations, incomplete results, passes.</td>
+          <td><code>src/utils/accessibilityScanner.ts</code>, <code>src/config/axe.config.ts</code>, <code>src/config/sites.config.ts</code></td>
+        </tr>
+        <tr>
+          <td>L4</td><td>Telemetry Collection &amp; Persistence</td>
+          <td>Turns "what's wrong with this page" into one number for the whole build, and writes it down permanently.</td>
+          <td>Normalizes raw axe results into a typed <code>TelemetryRecord</code>; computes the severity-weighted <code>defectScore</code>; writes an immutable JSON file.</td>
+          <td>Raw axe results attached to each Playwright test.</td>
+          <td><code>telemetry/history/build-&lt;sha&gt;.json</code> (append-only).</td>
+          <td><code>src/telemetry/schema.ts</code>, <code>collector.ts</code>, <code>writer.ts</code>, <code>reporter.ts</code></td>
+        </tr>
+        <tr>
+          <td>L5</td><td>SPC Analytics Engine</td>
+          <td>Looks at the whole history of build scores and decides whether the process behind them looks normal or suspicious.</td>
+          <td>Computes I-MR control limits, evaluates WECO + Nelson pattern rules, trend/regression/drift detectors, and one-sided Cpu capability.</td>
+          <td>The full (or windowed) telemetry history.</td>
+          <td>An <code>SpcReport</code> object: chart, rule flags, trend/spike/drift, capability, overall stability status.</td>
+          <td><code>src/spc/spcEngine.ts</code> and 9 sibling files — see <a href="spc.html">SPC From Zero</a>.</td>
+        </tr>
+        <tr>
+          <td>L6</td><td>Quality Gate Engine</td>
+          <td>Reads the SPC verdict and this build's raw numbers, and decides: ship it, warn about it, or block it.</td>
+          <td>Applies a declarative <code>GatePolicyConfig</code> against the latest record + <code>SpcReport</code>; returns a <code>GateVerdict</code> (<code>PASS</code>/<code>WARN</code>/<code>FAIL</code> + reasons).</td>
+          <td>Latest <code>TelemetryRecord</code> + <code>SpcReport</code>.</td>
+          <td><code>GateVerdict</code> object; CI exit code via <code>ciAdapter.ts</code>.</td>
+          <td><code>src/gates/gatePolicies.ts</code>, <code>qualityGateEvaluator.ts</code>, <code>ciAdapter.ts</code> — see <a href="gates.html">Quality Gates</a>.</td>
+        </tr>
+        <tr>
+          <td>L7</td><td>Dashboard &amp; Visualization</td>
+          <td>Draws a picture of everything above, for a human to look at — it doesn't decide anything itself.</td>
+          <td>Reads telemetry history, the production <code>SpcReport</code>/<code>GateVerdict</code>, and both experiment cohorts; renders a static HTML/CSS/JS site.</td>
+          <td>Telemetry history + already-computed SPC/gate/experiment outputs.</td>
+          <td><code>dashboard/index.html</code>, <code>dashboard/data.json</code> (generated, git-ignored).</td>
+          <td><code>src/dashboard/dashboardDataBuilder.ts</code>, <code>types.ts</code>, <code>templates/</code> — see <a href="dashboard.html">Dashboard</a>.</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="layers-vs-display">Who Calculates vs. Who Only Displays</h2>
+    <p>This distinction matters a lot for a viva, because it's the strongest evidence that the architecture is sound: L7 (the dashboard) is not allowed to invent numbers.</p>
+    <ul>
+      <li><strong>L4 (Telemetry) calculates</strong> one thing: the weighted <code>defectScore</code>. Nothing else.</li>
+      <li><strong>L5 (SPC) calculates</strong> everything statistical: center line, sigma, control limits, every rule flag, trend, spike, drift, Cpu.</li>
+      <li><strong>L6 (Gate) calculates</strong> one thing: the PASS/WARN/FAIL decision, by comparing L4's and L5's numbers to policy thresholds.</li>
+      <li><strong>L7 (Dashboard) calculates nothing.</strong> Its own source file says so directly. <code>src/dashboard/dashboardDataBuilder.ts</code>'s header comment states it "performs zero SPC math, zero rule evaluation, zero gate policy logic, and zero score computation of its own." It calls <code>loadTelemetryHistory()</code>, <code>computeSpcReport()</code>, <code>evaluateLatestBuild()</code>, and <code>runAnalysis()</code>/<code>summarizeResults()</code> — all pre-existing L4/L5/L6 functions — and only groups their output into the shape the HTML template expects.</li>
+    </ul>
+    <div class="box box-technical">
+      <div class="box-label">Technical explanation</div>
+      <p><code>scripts/verify-dashboard.ts</code> enforces this as a regression guard, not just a design intention: it calls <code>buildDashboardData()</code> and then independently calls <code>computeSpcReport(history)</code> and <code>evaluateLatestBuild(history)</code> directly, and asserts the two results are byte-identical (modulo the <code>generatedAt</code> timestamp). If a future change accidentally made the dashboard compute its own number, this check would fail.</p>
+    </div>
+
+    <h2 id="data-flow">One Build, File by File</h2>
+    <p>This is what actually happens, in order, naming the real functions — not a paraphrase.</p>
+    <ol>
+      <li>A developer pushes to <code>main</code>, or opens/updates a PR against <code>main</code>. GitHub Actions runs <code>.github/workflows/accessibility-ci.yml</code>.</li>
+      <li>The workflow runs <code>npm ci</code>, installs the Chromium browser, and compiles TypeScript (<code>npx tsc -p tsconfig.json</code>).</li>
+      <li>Six regression-guard scripts run (<code>verify:spc</code>, <code>verify:gates</code>, <code>verify:experiment</code>, <code>verify:stable-cohort</code>, <code>verify:ci</code>, <code>verify:dashboard</code>) — these check that the SPC engine, the gate engine, both experiments, and the dashboard's data layer still behave exactly as previously validated. They do not scan anything.</li>
+      <li><code>npm run test:a11y</code> runs Playwright against <code>tests/accessibility/all-pages.a11y.spec.ts</code>, which loops the 8 routes in <code>src/config/sites.config.ts</code> and calls <code>makeAxeBuilder().analyze()</code> (built from <code>src/utils/accessibilityScanner.ts</code>'s <code>createAxeBuilder()</code>) for each one.</li>
+      <li>Each test attaches its raw axe result as a Playwright test attachment named <code>axe-results</code>.</li>
+      <li>A custom Playwright reporter, <code>src/telemetry/reporter.ts</code> (<code>TelemetryReporter</code>), collects every attachment in <code>onTestEnd()</code>, then in <code>onEnd()</code> calls <code>collectTelemetry()</code> (<code>src/telemetry/collector.ts</code>) once for the whole run.</li>
+      <li><code>collectTelemetry()</code> normalizes the raw violations, computes <code>defectScore = 10·critical + 5·serious + 2·moderate + 1·minor</code> via <code>computeDefectScore()</code>, and returns one <code>TelemetryRecord</code>.</li>
+      <li><code>writeTelemetryRecord()</code> (<code>src/telemetry/writer.ts</code>) writes it to <code>telemetry/history/build-&lt;commitSha&gt;.json</code>. This file is never opened for writing again by any other code path in <code>src/</code>.</li>
+      <li><code>npm run gate:ci</code> runs <code>scripts/run-quality-gate.ts</code>, which calls <code>evaluateFromDisk()</code> (<code>src/gates/qualityGateEvaluator.ts</code>). That function calls <code>loadTelemetryHistory()</code> (<code>src/spc/spcEngine.ts</code>) to read every record in <code>telemetry/history/</code>, then <code>computeSpcReport()</code> to get the full <code>SpcReport</code>, then <code>evaluateQualityGate()</code> against <code>DEFAULT_GATE_POLICY</code> to get a <code>GateVerdict</code>.</li>
+      <li><code>formatGateVerdictForCi()</code> (<code>src/gates/ciAdapter.ts</code>) turns the verdict into an exit code (0 for PASS/WARN, 1 for FAIL), GitHub Actions annotations, and a step-summary. <code>run-quality-gate.ts</code> writes the raw verdict to <code>telemetry/aggregated/gate-verdict.json</code> and exits with that code.</li>
+      <li>Whatever the exit code, four more steps run because they're marked <code>if: always()</code>: <code>generate:dashboard</code> (which calls <code>buildDashboardData()</code>), <code>test:dashboard</code>, <code>test:dashboard:a11y</code>, and an artifact upload of <code>dashboard/</code>, <code>telemetry/aggregated/</code>, <code>telemetry/history/</code>, and <code>reports/</code>.</li>
+      <li>GitHub reports the gate step's exit code as the PR's status check. A FAIL blocks merge if branch protection requires this check; PASS/WARN do not.</li>
+    </ol>
+
+    <h2 id="discrepancies">Where the Code Differs From <code>ARCHITECTURE.md</code></h2>
+    <p>The architecture document (<code>docs/architecture/ARCHITECTURE.md</code>, "Draft v1.0") was written to plan the system before all of it existed. Some details drifted during implementation. Being able to name these honestly is worth more in a viva than pretending everything matches — it demonstrates you understand the real system, not just the plan for it.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ARCHITECTURE.md says</th><th>The actual code does</th></tr></thead>
+        <tbody>
+        <tr>
+          <td>A file <code>src/config/spc.config.ts</code> holds "window size, sigma multiplier, USL policy."</td>
+          <td>This file does not exist. SPC constants live inline in <code>src/spc/*.ts</code> (e.g. <code>D2_CONSTANT</code>, <code>K_SIGMA_MULTIPLIER</code> in <code>controlChart.ts</code>/<code>driftDetection.ts</code>) or are passed as per-call options (<code>SpcEngineOptions</code>, <code>usl</code>).</td>
+        </tr>
+        <tr>
+          <td>Control limits use "a window of the last N builds, N configurable — default 25."</td>
+          <td>The production SPC path (<code>computeSpcReport</code> called with <code>loadTelemetryHistory()</code>) uses the <strong>entire</strong> history — expanding, unbounded, no default window at all. The only 15-build trailing window that exists (<code>DEFAULT_TRAILING_WINDOW_SIZE = 15</code>) is in <code>src/spc/experimentAnalysis.ts</code>, used only for Experiment A's comparative analysis.</td>
+        </tr>
+        <tr>
+          <td>"The Rule Evaluator implements four Nelson rules" in a file called <code>westernElectricRules.ts</code>.</td>
+          <td>There are <strong>two</strong> separate, correctly-named rule files: <code>westernElectricRules.ts</code> (the 4 classic Western Electric rules) and a separate <code>nelsonRules.ts</code> (all 8 Nelson 1984 rules — a superset). Both are wired into <code>computeSpcReport()</code>. This is richer than the document describes, not an error — see <a href="spc.html">SPC From Zero</a>.</td>
+        </tr>
+        <tr>
+          <td>SPC §8 describes control limits, WECO/Nelson rules, and Cpk.</td>
+          <td>Two additional detectors exist that §8 never mentions: <code>regressionSpikeDetection.ts</code> (a same-build spike detector) and <code>driftDetection.ts</code> (a two-sided CUSUM drift detector). Both feed into the gate.</td>
+        </tr>
+        <tr>
+          <td>Files named <code>telemetryCollector.ts</code> / <code>telemetryWriter.ts</code>; scanner named <code>axeScanner.ts</code>.</td>
+          <td>Actual filenames are <code>src/telemetry/collector.ts</code>, <code>src/telemetry/writer.ts</code>, and <code>src/utils/accessibilityScanner.ts</code>. Formulas and behavior match the document; only the filenames differ.</td>
+        </tr>
+        <tr>
+          <td>Appendix B describes an <code>spc-summary.json</code> aggregate artifact in <code>telemetry/aggregated/</code>.</td>
+          <td>No code anywhere writes a file with that name. The one file <code>scripts/run-quality-gate.ts</code> actually writes into <code>telemetry/aggregated/</code> is <code>gate-verdict.json</code>; the dashboard generator separately writes <code>dashboard-data.json</code> there. Both are git-ignored and regenerated on demand.</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="box box-technical">
+      <div class="box-label">Technical explanation</div>
+      <p>None of these are correctness bugs — every regression-guard script (<code>verify:spc</code>, <code>verify:gates</code>, <code>verify:experiment</code>, <code>verify:stable-cohort</code>, <code>verify:ci</code>, <code>verify:dashboard</code>) passes against the code as it actually exists. They are drift between an early planning document and the implementation that followed it, which is completely normal in real software projects — and a reviewer who spots one of these differences is testing whether you understand your own repository or only your own document.</p>
+    </div>
+
+    <div class="footer-note">Sources: <code>docs/architecture/ARCHITECTURE.md</code> §2–§6; direct inspection of <code>src/</code>, <code>scripts/</code>, and <code>.github/workflows/accessibility-ci.yml</code> at HEAD <code>aca60a0</code>.</div>
+  </main>
+</div>
+<script src="script.js"></script>
+</body>
+</html>

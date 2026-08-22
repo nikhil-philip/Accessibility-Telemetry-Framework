@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tough Questions — Project Guide</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">Accessibility Telemetry Framework</div>
+    <div class="brand-sub">Project Guide &amp; Viva Preparation</div>
+    <input id="search-box" type="search" placeholder="Search the guide…" autocomplete="off" />
+    <div id="search-results"></div>
+    <nav>
+      <ul><li><a href="index.html">Home</a></li></ul>
+      <div class="group-label">Understand the System</div>
+      <ul>
+        <li><a href="architecture.html">Architecture (L1–L7)</a></li>
+        <li><a href="telemetry.html">Telemetry</a></li>
+        <li><a href="spc.html">SPC From Zero</a></li>
+        <li><a href="experiments.html">Experiments A &amp; B</a></li>
+        <li><a href="gates.html">Quality Gates</a></li>
+        <li><a href="cicd.html">CI/CD Pipeline</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+      <div class="group-label">Use It</div>
+      <ul>
+        <li><a href="testing.html">Commands</a></li>
+        <li><a href="demo.html">Reviewer Demo Script</a></li>
+      </ul>
+      <div class="group-label">Prepare for Viva</div>
+      <ul>
+        <li><a href="cheatsheet.html">Cheat Sheet</a></li>
+        <li><a href="questions.html">Reviewer Q&amp;A (40+)</a></li>
+        <li><a href="tough-questions.html">Tough Questions</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="glossary.html">Glossary</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="page-kicker">The hard part</div>
+    <h1>Tough Questions</h1>
+    <p class="lede">These are the questions a statistically literate reviewer is most likely to press on. Every answer here is academically honest — where the honest answer concedes a real limitation, it says so plainly rather than deflecting.</p>
+
+    <div class="qa-card">
+      <h4>T1. Why SPC at all — why not just look at the numbers yourself?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>Because "just look at the numbers" doesn't scale and doesn't formalize a decision — it relies on a human noticing a pattern in a noisy series, inconsistently, build after build. SPC replaces that with a repeatable, automatable rule: distinguish common-cause noise from special-cause signal using control limits derived from the process's own recent behavior, so the same decision gets made the same way every time, without a human needing to eyeball a chart.</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>T2. Why not simple thresholds — isn't SPC over-engineering for a defect count?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>A fair challenge. For a very small, simple project, a threshold probably is enough. The specific gap SPC closes is trend and drift detection — Nelson Rule 3, CUSUM — which a threshold structurally cannot do, because a threshold only ever looks at one number at a time. Whether that gap matters enough to justify the added complexity is a real judgment call, and I'd concede that for a small team with only a handful of builds, a threshold might be perfectly adequate. The value shows up at scale, over a long build history — which is exactly the real-data limitation this project currently has.</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>T3. Why synthetic data instead of a real, long-running project's history?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>Because a real, long-running project's accessibility history with a known, labeled regression event doesn't exist for me to use — I'd have needed years of an existing codebase's CI history with ground-truth labels for what was a "real" regression versus noise, which isn't available for an academic-timeline dissertation. Synthetic data lets me control the ground truth (I know exactly where the regression is, because I put it there), which is what makes the experiment's results checkable at all. The honest cost is that synthetic data can't prove the methodology generalizes to real-world noise patterns — only that it's implemented correctly.</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>T4. Is 30 builds enough?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>Enough to validate the mechanics — that the control chart, the rules, the window methods, and the capability formula all compute correctly and produce sensible, checkable numbers on data with known properties. Not enough to make a statistical claim about long-run detection rates, false-positive rates, or how the methodology performs against real, unpredictable variation. I'd call Experiments A and B a methodology validation, not a statistical power study, and I don't think 30 builds could honestly support the stronger claim.</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>T5. Why a 15-build trailing window specifically — why not 10, or 20?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>15 is <code>DEFAULT_TRAILING_WINDOW_SIZE</code> in <code>src/spc/experimentAnalysis.ts</code>, and I'll be direct: it was not empirically tuned by sweeping window sizes against real data and picking the best-performing one. It's a reasonable, common SPC rule-of-thumb window size — large enough to compute a stable control limit, small enough to stay responsive to recent behavior — chosen as a sensible default for a 30-build experiment, not derived from an optimization study. That's a genuine limitation if the question is "is 15 provably optimal" — it isn't provably anything; it's a defensible starting point.</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>T6. Why USL = 40?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>40 is the exact example value used in <code>ARCHITECTURE.md</code>'s Appendix B, and <code>scripts/generate-stable-cohort.ts</code> deliberately reuses it unchanged rather than tuning a new value specifically for Experiment B's data. The comment in that file states the reasoning directly: reusing the pre-existing example value, rather than picking a number that happens to produce a flattering capability result, avoids the appearance of manufacturing a favorable Cpu.</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>T7. Is USL = 40 organizationally derived — did a real team agree to this number?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>No, and I want to be clear about that rather than imply otherwise. There is no real organization, no real stakeholder sign-off behind "40." It's presented in the architecture document as an illustrative example ("no more than 15 weighted defect points is tolerable" is actually the document's own hypothetical prose example, distinct from the 40 used in Appendix B and in Experiment B) — a policy placeholder, not an empirically or organizationally derived specification limit. In a real deployment, USL is exactly the kind of number that should come from a real quality-policy conversation, and this project doesn't simulate that conversation.</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>T8. Why exclude Cpk from Experiment A?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>See <a href="experiments.html#cpk-excluded">Experiments → Why Cpk Was Excluded</a> in full. Short version: capability indices assume a single stable regime, and Experiment A is deliberately five different regimes. Computing Cpk there wouldn't be mathematically wrong, but interpreting the result as if it described one coherent process would be — so I simply didn't compute it, and <code>verify-experiment.ts</code> checks that <code>capability.usl/cpu/capable</code> stay <code>null</code> for all 30 builds under both analysis methods, and that <code>CPK_CAPABILITY</code> never appears as a gate reason there.</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>T9. Then why use Cpk in Experiment B at all — why not just skip capability analysis entirely?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>Because ARCHITECTURE.md §8.4 documents capability analysis as one of the framework's SPC techniques, and it deserves the same real, checkable validation the other techniques got. Skipping it entirely would leave a documented capability, <code>capabilityAnalysis.ts</code>, with no experiment proving it actually works. Experiment B exists specifically to give Cpk a context where its assumptions hold, so the capability index gets validated honestly instead of either being skipped or misapplied to Experiment A's non-stationary data.</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>T10. Does the trailing window hide historical defects?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>In a sense, yes — by design. A 15-build trailing window literally cannot see build 1 once build 16 arrives; that data isn't corrupted or deleted, it's just outside the window used for the <em>current</em> control-limit calculation. That's the real trade-off Experiment A's result demonstrates: expanding history never forgets (which let one stale outlier permanently distort Rule 1), while trailing window forgets on purpose (which keeps the chart current but means a genuinely old regression could, in principle, "expire" out of the window's visibility for future control-limit purposes, even though the raw record itself is never deleted from <code>telemetry/history/</code>). Both are legitimate methodologies with different trade-offs, not one being simply "more correct."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>T11. Why did Rule 1 become "stuck"?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>See <a href="experiments.html#rule1-stuck">Experiments → Why Rule 1 Became Stuck</a> for the full mechanism. In one sentence: under expanding history, build 1's score (64) never leaves the analysis window, and once later, quieter builds narrow the process's estimated sigma, that same old point retroactively reads as a &gt;3σ outlier — for the rest of the cohort, purely because the statistical goalposts moved, not because anything about build 1 changed.</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>T12. Can SPC generate false positives?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>Yes, and the Rule-1-stuck result is arguably an example of one — the engine kept flagging "beyond 3-sigma" for 16 straight builds under expanding history, but the actual cause was a stale early outlier, not a live, ongoing problem. Any statistical detector trades off sensitivity against false-positive rate; I didn't tune that trade-off empirically for this project (see T5's honest answer about the window size), so I can't claim a measured false-positive rate — only that the mechanism by which false positives can occur is directly visible and explainable, which is arguably still better than a black box.</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>T13. What happens when a process genuinely improves — does the framework reward that, or just stay quiet?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>It's designed to notice, not just stay quiet: Experiment A's Phase B ("Quality improvement") and Phase E ("Recovery") are exactly this scenario, and <code>detectDrift()</code>'s CUSUM can report <code>direction: 'IMPROVING'</code>, and <code>detectTrend()</code> can report an improving trend — but by policy, neither an improving trend nor an improving drift ever triggers a WARN or FAIL (<code>onlyWorsening: true</code> on both). So the framework can detect improvement internally, but the gate policy, as currently configured, doesn't do anything with that signal beyond not penalizing it. Surfacing genuine improvement more actively on the dashboard would be a reasonable enhancement this project doesn't currently make.</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>T14. Why implement both Nelson and Western Electric rule sets — isn't that redundant?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>There's real overlap — Rule 1 in both sets is the identical test, and Nelson is a strict superset of WECO's other three rules in spirit if not in exact run-length. I kept both because the SPC engine's job is to surface every statistically meaningful pattern it can, broadly, and the gate policy's job is separately to decide which of those matter — keeping the engine's coverage broad costs essentially nothing, since only 2 of the 12 total rule evaluations are wired to FAIL. If I were optimizing purely for minimal code, I could likely drop WECO and keep only the Nelson superset without losing detection coverage — that would be a legitimate simplification I didn't make.</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>T15. Why doesn't WARN block CI — isn't that a way of quietly ignoring real problems?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>It's a genuine policy trade-off, not free of downside. If WARN blocked CI, it would be functionally identical to FAIL, which defeats the point of having two severities. The risk you're pointing at is real: a team could accumulate WARNs indefinitely without ever being forced to act on them, since nothing mechanically stops a merge. The mitigation this project has is visibility, not enforcement — every WARN reason is surfaced in the CI annotations, the step summary, and the dashboard — but visibility is not the same guarantee as a hard stop, and I'd concede that a team that doesn't actively watch the dashboard could let WARNs pile up unaddressed.</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>T16. How do you know the dashboard's numbers are correct?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>Because <code>scripts/verify-dashboard.ts</code> doesn't just check the dashboard produces <em>some</em> output — it independently recomputes the same values by calling <code>computeSpcReport()</code> and <code>evaluateLatestBuild()</code> directly on the same input, and asserts byte-for-byte equality with what the dashboard's data builder produced. It also independently recomputes <code>defectScore</code> from raw severity counts rather than trusting the stored field. That's stronger evidence than "the dashboard looks right" — it's a regression guard that would fail loudly if the dashboard ever started computing something differently from the engines it's supposed to be purely displaying.</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>T17. What is your original contribution, precisely — and is it enough for a dissertation?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>Precisely: applying SPC — control charts, WECO/Nelson pattern rules, CUSUM drift, and one-sided capability analysis — to automated, per-build accessibility telemetry specifically, with a working, tested, end-to-end implementation and a validated (if currently synthetic-data-backed) methodology for doing so, positioned explicitly as a bridge between accessibility engineering and software-quality/SPC engineering rather than a new algorithm in either. Whether that's "enough" is ultimately for the examining committee to judge against the programme's expectations — what I can defend honestly is that the bridge itself doesn't already exist in the tools I surveyed (axe CI integrations, pa11y-ci, Lighthouse CI budgets all use static thresholds), and that the implementation is real, tested, and reproducible, not just a design document.</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>T18. If you had to name the single weakest part of this dissertation, what would it be?</h4>
+      <div class="qa-field"><span class="qa-field-label">Honest answer</span>The gap between "validated on synthetic data" and "proven to work in production." Everything in this project's implementation is real and tested — the code, the math, the CI pipeline, the dashboard. But the strongest possible version of RQ2 (does an SPC gate actually reduce false positives/negatives versus a static threshold, on real data) is not something 4 real telemetry records can answer. That's the honest limit of what this dissertation, on its timeline, could empirically establish — and I'd rather state that limit clearly than let a reviewer discover it by asking.</div>
+    </div>
+
+    <div class="footer-note">See also <a href="limitations.html">Limitations</a> for the same set of concerns organized as a straightforward list, and <a href="questions.html">Reviewer Q&amp;A</a> for the broader question set these are drawn from.</div>
+  </main>
+</div>
+<script src="script.js"></script>
+</body>
+</html>

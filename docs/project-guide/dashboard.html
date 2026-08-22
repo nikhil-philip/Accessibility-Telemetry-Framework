@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard (L7) — Project Guide</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">Accessibility Telemetry Framework</div>
+    <div class="brand-sub">Project Guide &amp; Viva Preparation</div>
+    <input id="search-box" type="search" placeholder="Search the guide…" autocomplete="off" />
+    <div id="search-results"></div>
+    <nav>
+      <ul><li><a href="index.html">Home</a></li></ul>
+      <div class="group-label">Understand the System</div>
+      <ul>
+        <li><a href="architecture.html">Architecture (L1–L7)</a></li>
+        <li><a href="telemetry.html">Telemetry</a></li>
+        <li><a href="spc.html">SPC From Zero</a></li>
+        <li><a href="experiments.html">Experiments A &amp; B</a></li>
+        <li><a href="gates.html">Quality Gates</a></li>
+        <li><a href="cicd.html">CI/CD Pipeline</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+      <div class="group-label">Use It</div>
+      <ul>
+        <li><a href="testing.html">Commands</a></li>
+        <li><a href="demo.html">Reviewer Demo Script</a></li>
+      </ul>
+      <div class="group-label">Prepare for Viva</div>
+      <ul>
+        <li><a href="cheatsheet.html">Cheat Sheet</a></li>
+        <li><a href="questions.html">Reviewer Q&amp;A (40+)</a></li>
+        <li><a href="tough-questions.html">Tough Questions</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="glossary.html">Glossary</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="page-kicker">Layer 7</div>
+    <h1>Dashboard: Presentation Only</h1>
+    <p class="lede">The dashboard is a static site generated on demand. Its entire job is to display numbers that L4, L5, and L6 already computed — it is not allowed to calculate a single one of its own, and that constraint is enforced by an automated check, not just a design intention.</p>
+
+    <h2 id="what-dashboard-shows">What the Dashboard Displays</h2>
+    <p>Three panels, rendered by <code>src/dashboard/templates/dashboard.js</code>'s <code>render(data)</code>:</p>
+    <ol>
+      <li><strong>Production Process</strong> (from <code>telemetry/history/</code>) — a gate-status badge row (Gate: PASS/WARN/FAIL, SPC process state, SPC stability status), the list of gate-failure reasons with actual vs. threshold values, stat tiles (latest defect score, center line, control limits, capability/Cpu), a violations-by-severity breakdown, and the I-chart itself with a "View as table" toggle.</li>
+      <li><strong>Experiment A</strong> — two side-by-side columns (Expanding History vs. Trailing Window), each with its own stat tiles (gate outcomes, regression spikes, trend/drift detections) and its own control chart with phase bands, plus an observations list.</li>
+      <li><strong>Experiment B</strong> — stat tiles (Cpu, capable badge, center line, gate status) and a control chart with an added USL reference line.</li>
+    </ol>
+
+    <h2 id="data-source">Where Its Data Comes From</h2>
+    <p><code>src/dashboard/dashboardDataBuilder.ts</code>'s <code>buildDashboardData()</code> calls, and only calls:</p>
+    <ul>
+      <li><code>loadTelemetryHistory()</code> — production history, and separately, both experiment cohort directories.</li>
+      <li><code>computeSpcReport()</code> — the production <code>SpcReport</code>, and Experiment B's (with <code>usl: EXPERIMENT_B_USL</code>, which equals 40).</li>
+      <li><code>evaluateLatestBuild()</code> / <code>evaluateQualityGate()</code> — the production gate verdict, and Experiment B's.</li>
+      <li><code>runAnalysis()</code> / <code>summarizeResults()</code> (from <code>src/spc/experimentAnalysis.ts</code>) — Experiment A's walk-forward results, under both history-selection methods.</li>
+    </ul>
+
+    <h2 id="no-duplicate-calc">Why It Doesn't Duplicate SPC/Gate Calculations</h2>
+    <div class="box box-technical">
+      <div class="box-label">Technical explanation</div>
+      <p><code>dashboardDataBuilder.ts</code>'s own header comment: <em>"This module performs zero SPC math, zero rule evaluation, zero gate policy logic, and zero score computation of its own — it only reads telemetry off disk … and groups already-computed results into the shape <code>src/dashboard/types.ts</code> declares."</em> The only numeric literal the file defines is <code>EXPERIMENT_B_USL = 40</code>, and that's documented as an existing option value passed <em>into</em> the unmodified <code>computeSpcReport()</code> — not a new calculation. <code>types.ts</code> reinforces this: "Every field here is a re-export or a plain grouping of a type already defined by L4 … L5 … L6 … This file declares zero new score, statistic, or threshold types."</p>
+    </div>
+    <p>The template's presentation layer says the same thing to the end user, in the actual footer of the generated site (<code>src/dashboard/templates/index.html</code>):</p>
+    <pre><code>&lt;p&gt;Presentation layer only — every value on this page is read
+directly from data.json, itself produced by the unmodified L4
+(Telemetry), L5 (SPC Analytics), and L6 (Quality Gate) engines.
+No score, control limit, rule, or capability calculation is
+performed by this page.&lt;/p&gt;</code></pre>
+    <div class="box box-technical">
+      <div class="box-label">Technical explanation — how this is enforced, not just claimed</div>
+      <p><code>scripts/verify-dashboard.ts</code> calls <code>buildDashboardData()</code> and then, separately, calls <code>computeSpcReport(history)</code> and <code>evaluateLatestBuild(history)</code> directly — and asserts the two outputs are byte-identical (modulo the <code>generatedAt</code> timestamp). It also independently recomputes <code>defectScore</code> from the raw severity counts and checks it against the record, and diffs <code>telemetry/history/</code> and both experiment directories before and after calling <code>buildDashboardData()</code> twice, to prove the dashboard never mutates its source data.</p>
+    </div>
+
+    <h2>Generating and Serving It</h2>
+    <ul>
+      <li><code>scripts/generate-dashboard.ts</code> calls <code>buildDashboardData()</code>, writes the result to <code>telemetry/aggregated/dashboard-data.json</code> and <code>dashboard/data.json</code>, and copies <code>src/dashboard/templates/{index.html,dashboard.css,dashboard.js}</code> verbatim into <code>dashboard/</code>. It contains no markup or rendering logic itself — only file I/O.</li>
+      <li><code>scripts/serve-dashboard.ts</code> is a minimal, dependency-free static file server (Node's built-in <code>http</code>/<code>fs</code> only, default port 4310) that exists purely so Playwright can load the dashboard over <code>http://</code> — <code>fetch('data.json')</code> is blocked by Chromium over a raw <code>file://</code> path.</li>
+      <li>The <code>dashboard/</code> folder itself is git-ignored and not present in the checked-out repository until one of the above scripts runs — this is expected, not missing.</li>
+    </ul>
+
+    <h2 id="browser-tests">Browser Smoke Tests</h2>
+    <p><code>tests-dashboard/dashboard.smoke.spec.ts</code>, run via <code>playwright.dashboard.config.ts</code> (Chromium only, base URL <code>http://localhost:4310</code>). It proves the page actually works in a real browser:</p>
+    <ul>
+      <li>Loads <code>/index.html</code>, checks the response is 200 OK and the <code>&lt;h1&gt;</code> reads "Accessibility Quality Engineering Dashboard."</li>
+      <li>Confirms the production panel shows a gate badge, "Latest defect score," and severity labels ("Critical (weight 10)," "Serious (weight 5)").</li>
+      <li>Confirms the I-chart's SVG actually rendered data points (<code>svg.chart circle.point</code> count &gt; 0).</li>
+      <li>Confirms at least one SPC observation is visible and mentions "regression spike" or "rule 1."</li>
+    </ul>
+
+    <h2 id="keyboard">Keyboard Accessibility</h2>
+    <p>The same smoke spec presses <span class="kbd">Tab</span> up to 40 times looking for the first "View as table" button by keyboard focus, then presses <span class="kbd">Enter</span> and asserts the data table becomes visible — proving the dashboard's interactive elements are reachable and operable without a mouse. It also asserts zero uncaught page errors and zero console errors during the whole run.</p>
+
+    <h2 id="a11y-of-dashboard">Dashboard Accessibility (axe-core, Dogfooding)</h2>
+    <p><code>tests-dashboard/dashboard.a11y.spec.ts</code> uses the project's own shared <code>createAxeBuilder()</code> helper (the same one used to scan ShopSmart) and asserts <strong>zero</strong> axe-core violations — the actual code:</p>
+    <pre><code>for (const colorScheme of ['light', 'dark'] as const) {
+  test(`dashboard has zero axe-core violations (${colorScheme} mode)`, async ({ browser }) =&gt; {
+    const context = await browser.newContext({ colorScheme });
+    const page = await context.newPage();
+    await page.goto('/index.html');
+    await page.waitForLoadState('networkidle');
+    const results = await createAxeBuilder(page).analyze();
+    expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+    await context.close();
+  });
+}</code></pre>
+    <p>This runs the check twice — once per <code>colorScheme</code> — so both light and dark mode are independently verified against real CSS (<code>dashboard.css</code> defines <code>color-scheme: light</code> by default and a <code>@media (prefers-color-scheme: dark)</code> block).</p>
+    <div class="box box-say">
+      <div class="box-label">What I should say</div>
+      <p>"It felt important that a project about accessibility didn't ship an inaccessible dashboard. So the dashboard gets scanned with the exact same axe-core configuration used on the application under test, in both light and dark mode, and that test is wired into CI as a required step — not a nice-to-have I ran once manually."</p>
+    </div>
+
+    <div class="footer-note">Sources: <code>src/dashboard/dashboardDataBuilder.ts</code>, <code>types.ts</code>, <code>templates/{index.html,dashboard.css,dashboard.js}</code>, <code>scripts/generate-dashboard.ts</code>, <code>scripts/serve-dashboard.ts</code>, <code>scripts/verify-dashboard.ts</code>, <code>tests-dashboard/dashboard.smoke.spec.ts</code>, <code>tests-dashboard/dashboard.a11y.spec.ts</code>, <code>playwright.dashboard.config.ts</code>.</div>
+  </main>
+</div>
+<script src="script.js"></script>
+</body>
+</html>

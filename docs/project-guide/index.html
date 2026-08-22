@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home — Accessibility Telemetry Framework Project Guide</title>
+<meta name="description" content="Beginner-friendly documentation and viva preparation guide for the Accessibility Telemetry Framework (BITS Pilani M.Tech dissertation project).">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">Accessibility Telemetry Framework</div>
+    <div class="brand-sub">Project Guide &amp; Viva Preparation</div>
+    <input id="search-box" type="search" placeholder="Search the guide…" autocomplete="off" />
+    <div id="search-results"></div>
+    <nav>
+      <ul><li><a href="index.html">Home</a></li></ul>
+      <div class="group-label">Understand the System</div>
+      <ul>
+        <li><a href="architecture.html">Architecture (L1–L7)</a></li>
+        <li><a href="telemetry.html">Telemetry</a></li>
+        <li><a href="spc.html">SPC From Zero</a></li>
+        <li><a href="experiments.html">Experiments A &amp; B</a></li>
+        <li><a href="gates.html">Quality Gates</a></li>
+        <li><a href="cicd.html">CI/CD Pipeline</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+      <div class="group-label">Use It</div>
+      <ul>
+        <li><a href="testing.html">Commands</a></li>
+        <li><a href="demo.html">Reviewer Demo Script</a></li>
+      </ul>
+      <div class="group-label">Prepare for Viva</div>
+      <ul>
+        <li><a href="cheatsheet.html">Cheat Sheet</a></li>
+        <li><a href="questions.html">Reviewer Q&amp;A (40+)</a></li>
+        <li><a href="tough-questions.html">Tough Questions</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="glossary.html">Glossary</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="page-kicker">Start here</div>
+    <h1>What This Guide Is For</h1>
+    <p class="lede">
+      This is a plain-English guide to the <strong>Accessibility Telemetry Framework</strong> — the project in
+      <code>accessibility-telemetry-framework/</code> — written so you (the author) can explain what you built,
+      why you built it, and defend it in a viva, without needing to re-read the TypeScript source. Every claim in
+      this guide was checked directly against the repository's code, configuration, git history, and real generated
+      data — not against memory or assumption. Where the code disagrees with the project's own architecture
+      document, that disagreement is called out honestly rather than hidden.
+    </p>
+
+    <h2 id="what-did-you-build">If the reviewer asks: "What did you build?"</h2>
+
+    <h3 id="thirty-second">The 30-second answer</h3>
+    <div class="box box-say">
+      <div class="box-label">What I should say</div>
+      <p>"I built a system that runs automated accessibility tests on a demo shopping website every time code
+      changes, but instead of just saying 'pass' or 'fail' on one test run, it treats the accessibility defect
+      count as a manufacturing-style measurement and tracks it over time using Statistical Process Control — the
+      same discipline factories use to detect when a machine is drifting out of calibration. A quality gate then
+      uses that statistical signal, not just a raw count, to decide whether a build is safe to merge, and a
+      dashboard shows the evidence."</p>
+    </div>
+
+    <h3 id="sixty-second">The 60-second answer</h3>
+    <div class="box box-say">
+      <div class="box-label">What I should say</div>
+      <p>"Most accessibility CI tools ask one narrow question: does this build violate a WCAG rule, yes or no? They
+      compare a violation count against a fixed threshold. My project asks a different question: is the
+      application's accessibility quality <em>stable</em>, <em>improving</em>, or <em>quietly getting worse</em>
+      over many builds? I run Playwright with axe-core against a demo e-commerce app called ShopSmart, turn each
+      scan into a single severity-weighted defect score, and store one record per build as telemetry. Then I run
+      that score series through an Individuals–Moving-Range control chart — the same statistical method used to
+      monitor manufacturing processes — with Western Electric and Nelson pattern rules, a CUSUM drift detector, and
+      a regression-spike detector layered on top. A declarative quality gate turns those statistical signals into
+      PASS, WARN, or FAIL, and that verdict becomes a required GitHub Actions status check. A static dashboard
+      displays everything — it doesn't calculate anything itself, it only reads what the SPC engine and the gate
+      already decided."</p>
+    </div>
+
+    <h3 id="three-minute">The 3-minute answer</h3>
+    <div class="box box-say">
+      <div class="box-label">What I should say</div>
+      <p>"The core idea is borrowed from manufacturing quality engineering. In a factory, you don't reject a part
+      just because one measurement is slightly off — you watch the process over time and distinguish ordinary
+      variation from a real problem. I apply that same idea to accessibility defects in a CI pipeline.</p>
+      <p>Concretely: every time the pipeline runs, Playwright drives a browser through eight pages of a demo
+      shopping site (ShopSmart) that I built specifically to have known, cataloged accessibility defects. axe-core
+      scans each page against WCAG 2.2 A/AA rules. I turn the violations into one number per build — a
+      severity-weighted defect score, critical defects worth 10 points, serious worth 5, moderate worth 2, minor
+      worth 1 — and write it as an immutable JSON telemetry record.</p>
+      <p>That score becomes one point on an I-MR control chart. I compute the center line, the moving range, and
+      3-sigma control limits from the build history, then run two families of pattern-detection rules against it —
+      the four classic Western Electric rules and all eight Nelson rules — plus a regression-spike detector and a
+      CUSUM drift detector for slow degradation the point-by-point rules can miss. If there's an agreed upper
+      specification limit, I also compute Cpu, a process-capability index, but only on a cohort I can prove is a
+      single stable regime — I built two separate experiments specifically to keep that assumption honest.</p>
+      <p>All of those signals feed a declarative quality gate — a policy object, not scattered if-statements —
+      that returns PASS, WARN, or FAIL. That verdict is wired into a real GitHub Actions workflow as the thing
+      that decides whether a build can merge. A generated static dashboard then displays the control chart, the
+      gate verdict, and both experiments' results, without doing any of its own math — it's a pure presentation
+      layer over numbers the SPC and gate engines already computed. The whole thing is my BITS Pilani M.Tech
+      final-year dissertation project, and its research contribution is the bridge between two established fields
+      — WCAG accessibility automation and SPC/software-quality engineering — not a new algorithm in either one."</p>
+    </div>
+
+    <h2 id="purpose">Why This Project Exists</h2>
+    <p>
+      Off-the-shelf accessibility CI tools (axe CLI integrations, <code>pa11y-ci</code>, Lighthouse CI accessibility
+      budgets) all use <strong>static threshold gating</strong>: a build fails if a fixed violation count is
+      exceeded, full stop. That approach cannot tell the difference between a one-off blip (a third-party widget's
+      markup shifted slightly) and a genuine, sustained regression. It also can't see a slow accessibility-debt
+      creep — eight builds in a row that each look individually "fine" but are all trending the same direction.
+    </p>
+    <p>
+      This project's contribution, as stated in <code>docs/architecture/ARCHITECTURE.md</code> §9, sits at the
+      intersection of two already-established fields — WCAG accessibility automation and SPC / software quality
+      engineering — and its value is the <em>bridge</em> between them, not a novel algorithm in either field alone.
+    </p>
+
+    <h2>Where to Go Next</h2>
+    <div class="card-grid">
+      <a class="nav-card" href="architecture.html">
+        <div class="nc-title">Architecture (L1–L7)</div>
+        <div class="nc-desc">The seven layers, what each one actually does, and which files implement them.</div>
+      </a>
+      <a class="nav-card" href="spc.html">
+        <div class="nc-title">SPC From Zero</div>
+        <div class="nc-desc">Mean, sigma, control limits, and every detection rule this project actually runs — taught from nothing.</div>
+      </a>
+      <a class="nav-card" href="experiments.html">
+        <div class="nc-title">Experiments A &amp; B</div>
+        <div class="nc-desc">The 30-build baseline-methodology study and the 30-build capability study, with real numbers.</div>
+      </a>
+      <a class="nav-card" href="demo.html">
+        <div class="nc-title">Reviewer Demo Script</div>
+        <div class="nc-desc">Exact commands, in order, with what to say at each step.</div>
+      </a>
+      <a class="nav-card" href="cheatsheet.html">
+        <div class="nc-title">Cheat Sheet</div>
+        <div class="nc-desc">The one page to reread five minutes before you walk in.</div>
+      </a>
+      <a class="nav-card" href="questions.html">
+        <div class="nc-title">Reviewer Q&amp;A</div>
+        <div class="nc-desc">40+ likely questions, organized by topic, with natural spoken answers.</div>
+      </a>
+    </div>
+
+    <h2>The Big Picture</h2>
+    <p>One build, start to finish. Every stage in this diagram is a real file boundary in the repository — see
+    <a href="architecture.html#data-flow">Architecture → Data Flow</a> for the exact filenames.</p>
+    <div class="diagram">
+      <svg viewBox="0 0 1180 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pipeline: developer change through accessibility testing, telemetry, SPC, quality gate, CI decision, to dashboard evidence">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--text-muted)"></path>
+          </marker>
+        </defs>
+        <style>
+          .n rect { fill: var(--bg-panel); stroke: var(--border); stroke-width: 1.4; rx: 8; }
+          .n text { font-family: var(--sans); font-size: 12px; fill: var(--text); }
+          .n .t { font-weight: 700; font-size: 12.5px; }
+          .n .s { fill: var(--text-muted); font-size: 10.5px; }
+          .edge { stroke: var(--text-muted); stroke-width: 1.4; fill: none; marker-end: url(#arrow); }
+          .accent rect { stroke: var(--accent); stroke-width: 2; }
+        </style>
+
+        <!-- row of boxes -->
+        <g class="n"><rect x="10" y="30" width="130" height="60"></rect>
+          <text x="75" y="55" text-anchor="middle" class="t">Developer</text>
+          <text x="75" y="72" text-anchor="middle" class="s">push / PR to main</text></g>
+
+        <g class="n"><rect x="170" y="30" width="140" height="60"></rect>
+          <text x="240" y="52" text-anchor="middle" class="t">A11y Testing</text>
+          <text x="240" y="68" text-anchor="middle" class="s">Playwright + axe-core</text>
+          <text x="240" y="82" text-anchor="middle" class="s">(L2 / L3)</text></g>
+
+        <g class="n"><rect x="340" y="30" width="140" height="60"></rect>
+          <text x="410" y="52" text-anchor="middle" class="t">Defect Detection</text>
+          <text x="410" y="68" text-anchor="middle" class="s">WCAG 2.2 A/AA violations</text>
+          <text x="410" y="82" text-anchor="middle" class="s">on 8 ShopSmart pages</text></g>
+
+        <g class="n"><rect x="510" y="30" width="130" height="60"></rect>
+          <text x="575" y="52" text-anchor="middle" class="t">Telemetry</text>
+          <text x="575" y="68" text-anchor="middle" class="s">defectScore, JSON record</text>
+          <text x="575" y="82" text-anchor="middle" class="s">(L4)</text></g>
+
+        <g class="n"><rect x="670" y="30" width="130" height="60"></rect>
+          <text x="735" y="52" text-anchor="middle" class="t">SPC Analysis</text>
+          <text x="735" y="68" text-anchor="middle" class="s">I-MR chart, rules, CUSUM</text>
+          <text x="735" y="82" text-anchor="middle" class="s">(L5)</text></g>
+
+        <g class="n accent"><rect x="830" y="30" width="130" height="60"></rect>
+          <text x="895" y="52" text-anchor="middle" class="t">Quality Gate</text>
+          <text x="895" y="68" text-anchor="middle" class="s">declarative policy</text>
+          <text x="895" y="82" text-anchor="middle" class="s">(L6)</text></g>
+
+        <g class="n"><rect x="990" y="30" width="180" height="60"></rect>
+          <text x="1080" y="52" text-anchor="middle" class="t">CI/CD Decision</text>
+          <text x="1080" y="68" text-anchor="middle" class="s">status check on the PR</text>
+          <text x="1080" y="82" text-anchor="middle" class="s">(L1)</text></g>
+
+        <path class="edge" d="M140,60 H170"></path>
+        <path class="edge" d="M310,60 H340"></path>
+        <path class="edge" d="M480,60 H510"></path>
+        <path class="edge" d="M640,60 H670"></path>
+        <path class="edge" d="M800,60 H830"></path>
+        <path class="edge" d="M960,60 H990"></path>
+
+        <!-- verdict row -->
+        <g class="n"><rect x="830" y="140" width="40" height="34"></rect><text x="850" y="162" text-anchor="middle" class="t" font-size="11">PASS</text></g>
+        <g class="n"><rect x="880" y="140" width="45" height="34"></rect><text x="902" y="162" text-anchor="middle" class="t" font-size="11">WARN</text></g>
+        <g class="n"><rect x="935" y="140" width="40" height="34"></rect><text x="955" y="162" text-anchor="middle" class="t" font-size="11">FAIL</text></g>
+        <path class="edge" d="M895,90 V140"></path>
+
+        <g class="n"><rect x="640" y="190" width="220" height="55"></rect>
+          <text x="750" y="212" text-anchor="middle" class="t">Dashboard / Evidence</text>
+          <text x="750" y="228" text-anchor="middle" class="s">static site, artifact upload</text></g>
+        <path class="edge" d="M850,174 V202 H860"></path>
+        <path class="edge" d="M575,90 V217 H640" style="stroke-dasharray:3,3"></path>
+      </svg>
+      <div class="diagram-caption">Solid line = the main control-flow path. Dashed line = telemetry is also read directly by the dashboard generator, in parallel with the gate.</div>
+    </div>
+
+    <div class="footer-note">
+      Verified against HEAD commit <code>aca60a0</code> (branch <code>main</code>, working tree clean). See the
+      <a href="limitations.html">Limitations</a> page for what could not be independently re-run, and each page's
+      inline notes for anywhere this guide's description differs from <code>docs/architecture/ARCHITECTURE.md</code>.
+    </div>
+  </main>
+</div>
+<script src="script.js"></script>
+</body>
+</html>

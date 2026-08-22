@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPC From Zero (L5) — Project Guide</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">Accessibility Telemetry Framework</div>
+    <div class="brand-sub">Project Guide &amp; Viva Preparation</div>
+    <input id="search-box" type="search" placeholder="Search the guide…" autocomplete="off" />
+    <div id="search-results"></div>
+    <nav>
+      <ul><li><a href="index.html">Home</a></li></ul>
+      <div class="group-label">Understand the System</div>
+      <ul>
+        <li><a href="architecture.html">Architecture (L1–L7)</a></li>
+        <li><a href="telemetry.html">Telemetry</a></li>
+        <li><a href="spc.html">SPC From Zero</a></li>
+        <li><a href="experiments.html">Experiments A &amp; B</a></li>
+        <li><a href="gates.html">Quality Gates</a></li>
+        <li><a href="cicd.html">CI/CD Pipeline</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+      <div class="group-label">Use It</div>
+      <ul>
+        <li><a href="testing.html">Commands</a></li>
+        <li><a href="demo.html">Reviewer Demo Script</a></li>
+      </ul>
+      <div class="group-label">Prepare for Viva</div>
+      <ul>
+        <li><a href="cheatsheet.html">Cheat Sheet</a></li>
+        <li><a href="questions.html">Reviewer Q&amp;A (40+)</a></li>
+        <li><a href="tough-questions.html">Tough Questions</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="glossary.html">Glossary</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="page-kicker">Layer 5 — taught from nothing</div>
+    <h1>Statistical Process Control, From Zero</h1>
+    <p class="lede">You do not need a statistics background to defend this section — you need to understand seven or eight ideas, in order, and know exactly which file implements each one. This page builds those ideas from scratch, then walks through every detector this project actually runs, one at a time.</p>
+
+    <div class="toc-inline">
+      <strong>On this page</strong>
+      <ul>
+        <li><a href="#spc-basics">The basics: process, variation, mean, sigma</a></li>
+        <li><a href="#control-limits">Control limits: UCL, LCL, the I-MR chart</a></li>
+        <li><a href="#common-vs-special-cause">Common cause vs. special cause</a></li>
+        <li><a href="#techniques">Every detector this project runs</a></li>
+        <li><a href="#window-diagram">Expanding history vs. trailing window</a></li>
+      </ul>
+    </div>
+
+    <h2 id="spc-basics">The Basics</h2>
+
+    <h3>A "process"</h3>
+    <div class="box box-beginner">
+      <div class="box-label">Beginner explanation</div>
+      <p>A process is anything that happens repeatedly and produces a measurable result each time. A factory machine stamping out metal parts is a process — each part's thickness is a measurement. Here, "run the accessibility tests on ShopSmart" is the process, and each build's <code>defectScore</code> is the measurement.</p>
+    </div>
+
+    <h3>Variation</h3>
+    <div class="box box-beginner">
+      <div class="box-label">Beginner explanation</div>
+      <p>No process ever produces the exact same measurement twice. Even a perfectly good machine's parts vary by a tiny amount. Even a perfectly good codebase's defect score will wobble slightly build to build (a new page added to the crawl set, a third-party widget's markup shifting). Variation is simply the fact that the numbers move around; SPC's whole job is deciding whether a particular movement is <em>meaningful</em> or not.</p>
+    </div>
+
+    <h3>Mean (average) and standard deviation ("sigma")</h3>
+    <div class="box box-beginner">
+      <div class="box-label">Beginner explanation</div>
+      <p>The <strong>mean</strong> is the plain average of a set of numbers — add them up, divide by how many there are. It's "the middle" the process tends to sit around. <strong>Standard deviation</strong> (written σ, "sigma") is a single number describing how far the measurements typically spread out from that middle. A small sigma means the numbers cluster tightly; a large sigma means they're scattered widely. Sigma is what turns "this build's score is a bit higher" into "this build's score is unusually, suspiciously higher."</p>
+    </div>
+    <div class="box box-technical">
+      <div class="box-label">Technical explanation</div>
+      <p>This project does not compute sigma from raw sample variance. Because builds arrive one at a time (not in natural subgroups), it uses the <strong>moving range</strong> method standard to an Individuals chart: <code>σ̂ = MR̄ / 1.128</code>, where <code>MR̄</code> is the mean of the absolute differences between consecutive builds, and <code>1.128</code> is the <code>d2</code> control-chart constant for a subgroup size of 2. This is exact code from <code>src/spc/controlChart.ts</code>: <code>export const D2_CONSTANT = 1.128;</code> … <code>const sigma = mrBar / D2_CONSTANT;</code></p>
+    </div>
+
+    <h2 id="control-limits">Control Limits: UCL, LCL, and the I-MR Chart</h2>
+    <p>The project uses an <strong>Individuals–Moving-Range (I-MR) chart</strong>, the correct SPC chart family for data that arrives one point at a time rather than in natural groups of several samples.</p>
+    <div class="table-wrap">
+      <table>
+        <caption>Exact formulas from <code>src/spc/controlChart.ts</code> — <code>computeControlChart()</code></caption>
+        <thead><tr><th>Quantity</th><th>Formula (as implemented)</th><th>Meaning</th></tr></thead>
+        <tbody>
+        <tr><td>Moving Range <code>MR_i</code></td><td><code>abs(X_i − X_(i-1))</code></td><td>How much the score changed from the previous build.</td></tr>
+        <tr><td>Center line X̄</td><td><code>mean(all defectScores in the window)</code></td><td>Where the process "normally" sits.</td></tr>
+        <tr><td>MR̄</td><td><code>mean(all moving ranges)</code></td><td>Typical build-to-build jump size.</td></tr>
+        <tr><td>σ̂ (sigma)</td><td><code>MR̄ / 1.128</code></td><td>Estimated standard deviation of the process.</td></tr>
+        <tr><td>UCL (Upper Control Limit)</td><td><code>X̄ + 2.6595 × MR̄</code> <span class="small muted">(≈ X̄ + 3σ̂)</span></td><td>Above this, a point is "statistically surprising."</td></tr>
+        <tr><td>LCL (Lower Control Limit)</td><td><code>max(0, X̄ − 2.6595 × MR̄)</code></td><td>Below this is equally surprising; clamped at 0 since a defect score can't be negative.</td></tr>
+        <tr><td>UCL for the MR chart</td><td><code>3.267 × MR̄</code></td><td>Flags an unusually large single jump between two consecutive builds.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="box box-beginner">
+      <div class="box-label">Beginner explanation</div>
+      <p>Imagine plotting every build's defect score as a dot on a timeline. Draw a horizontal line through the average (the center line). Draw two more lines above and below it — the UCL and LCL — at a distance chosen so that, if the process really is behaving normally, a dot almost never lands outside them by chance. If a dot <em>does</em> land outside, that's your signal: something about the process itself has probably changed, not just ordinary noise.</p>
+    </div>
+    <div class="box box-question">
+      <div class="box-label">Possible reviewer question</div>
+      <p>"Why 2.6595, not exactly 3?" Because <code>2.6595 × MR̄</code> algebraically equals <code>3 × σ̂</code> once you substitute <code>σ̂ = MR̄ / 1.128</code> (<code>3 / 1.128 = 2.6595…</code>). It's the same "3-sigma" limit, expressed directly in terms of the moving range so the code never needs to compute sigma as an intermediate step. <code>src/spc/controlChart.ts</code> even names the constant <code>I_CHART_SIGMA_FACTOR = 3 / D2_CONSTANT</code> to make this explicit.</p>
+    </div>
+
+    <h2 id="common-vs-special-cause">Common Cause vs. Special Cause, Stable vs. Unstable</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Term</th><th>Plain English</th></tr></thead>
+        <tbody>
+        <tr><td>Common cause variation</td><td>Ordinary, expected noise. The process is "in control" — nothing needs investigating.</td></tr>
+        <tr><td>Special cause variation</td><td>A signal that something structurally changed — a real regression, or a real improvement. The process is "out of control" and deserves a human's attention.</td></tr>
+        <tr><td>Stable process</td><td>Only common-cause variation is present; the center line and spread aren't shifting.</td></tr>
+        <tr><td>Unstable process</td><td>A special cause has been detected — a rule triggered, a control limit was crossed, a trend or drift was found.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="box box-say">
+      <div class="box-label">What I should say</div>
+      <p>"I'm using SPC because I don't want to look at every accessibility result in isolation. I want to know whether the behaviour of the process itself is becoming unusual. A static threshold — 'fail if more than 10 violations' — can't make that distinction. It can't tell a one-off blip from a sustained regression, and it's structurally blind to eight builds in a row that are each individually fine but all drifting the same direction."</p>
+    </div>
+
+    <h2 id="techniques">Every Detector This Project Actually Runs</h2>
+    <p>All of the following are called, in this order, inside <code>computeSpcReport()</code> (<code>src/spc/spcEngine.ts</code>): control chart → Western Electric rules → Nelson rules → trend → regression spike → drift → capability.</p>
+
+    <h3 id="weco-rule1">Western Electric Rule 1 (and the other 3 WECO rules)</h3>
+    <div class="table-wrap"><table>
+      <tbody>
+      <tr><th>1. Plain English</th><td>One single point is way outside the normal band — a sudden, large jump.</td></tr>
+      <tr><th>2. Technical</th><td><code>src/spc/westernElectricRules.ts</code>: <code>nOfMBeyondSigma(values, centerLine, sigma, k=3, n=1, m=1)</code> — 1 of the last 1 point is ≥3σ from the center line, either side.</td></tr>
+      <tr><th>3. What it detects</th><td>A single build with a dramatically worse (or better) score than the process's usual behavior.</td></tr>
+      <tr><th>4. Why it matters</th><td>It's the sharpest, most obvious signal — the classic "3-sigma outlier" every SPC course starts with.</td></tr>
+      <tr><th>5. How this project uses it</th><td>WECO Rule 1 is one of exactly two rules the gate policy treats as an automatic <strong>FAIL</strong> (<code>gatePolicies.ts</code>: <code>failRules: [{ruleSet:'WESTERN_ELECTRIC', rule:1}, {ruleSet:'NELSON', rule:1}]</code>).</td></tr>
+      <tr><th>6. Possible criticism</th><td>Reviewers may ask why WECO Rule 1 and Nelson Rule 1 are both listed separately in the gate policy when they're mathematically identical.</td></tr>
+      <tr><th>7. How to answer</th><td>"They are the same pattern test, computed once and referenced from both rule sets — <code>experimentAnalysis.ts</code> even documents that they always agree by construction. Listing both in <code>failRules</code> is defensive/explicit, not double-counting: the gate's reason list would report a single triggered rule either way, since the loop de-duplicates identical outcomes in practice."</td></tr>
+      </tbody>
+    </table></div>
+    <details class="tech"><summary>All four Western Electric rules, exactly as coded</summary>
+      <div class="tech-body">
+        <div class="table-wrap"><table>
+          <thead><tr><th>Rule</th><th>Exact name in code</th><th>Trigger</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td>"Beyond 3-sigma"</td><td>1 of last 1 point beyond 3σ</td></tr>
+          <tr><td>2</td><td>"2 of 3 beyond 2-sigma"</td><td>2 of last 3 points beyond 2σ, same side</td></tr>
+          <tr><td>3</td><td>"4 of 5 beyond 1-sigma"</td><td>4 of last 5 points beyond 1σ, same side</td></tr>
+          <tr><td>4</td><td>"8 consecutive same side"</td><td>8 consecutive points all above, or all below, the center line</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </details>
+
+    <h3 id="nelson-rule1">Nelson Rule 1 (and the fuller 8-rule Nelson set)</h3>
+    <div class="table-wrap"><table>
+      <tbody>
+      <tr><th>1. Plain English</th><td>Same idea as WECO Rule 1 — one point wildly outside the band — but evaluated as part of a larger, 8-rule family covering more subtle patterns (long same-side runs, strict trends, alternating zig-zags, and unusually <em>tight</em> clustering).</td></tr>
+      <tr><th>2. Technical</th><td><code>src/spc/nelsonRules.ts</code> — <code>evaluateNelsonRules()</code> runs all 8 Nelson (1984) rules; Rule 1 uses the identical <code>nOfMBeyondSigma(...,3,1,1)</code> call as WECO Rule 1.</td></tr>
+      <tr><th>3. What it detects</th><td>Rules 1–6 mirror WECO's escalating-severity pattern; Rule 4 (14 alternating) catches an artificially "too regular" oscillation; Rule 7 (15 within 1σ) catches suspiciously <em>low</em> variation (possible measurement problem); Rule 8 (8 beyond 1σ, mixed both sides) catches a mixture of two different underlying processes.</td></tr>
+      <tr><th>4. Why it matters</th><td>Nelson's rules are a strict superset of WECO's — implementing both gives more pattern coverage without changing the underlying math.</td></tr>
+      <tr><th>5. How this project uses it</th><td>Only Nelson Rule 1 is wired to <strong>FAIL</strong> the gate by default; any of the other 7, if triggered, falls under <code>warnOnOtherTriggeredRules: true</code> and produces a <strong>WARN</strong>.</td></tr>
+      <tr><th>6. Possible criticism</th><td>"Why implement 12 total rule evaluations (4 WECO + 8 Nelson) when only 2 of them ever produce a FAIL?"</td></tr>
+      <tr><th>7. How to answer</th><td>"Because the gate policy and the SPC engine are deliberately separate layers. The SPC engine's job is to surface every statistically meaningful pattern it can detect; the gate policy's job is to decide which of those patterns are severe enough to block a merge versus just warn about. Keeping the engine's coverage broad costs nothing — the dashboard and the WARN-level reasons still surface every triggered rule to a human, even the ones that don't block CI."</td></tr>
+      </tbody>
+    </table></div>
+    <details class="tech"><summary>All eight Nelson rules, exactly as coded</summary>
+      <div class="tech-body">
+        <div class="table-wrap"><table>
+          <thead><tr><th>Rule</th><th>Exact name in code</th><th>Trigger</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td>"Beyond 3-sigma"</td><td>1 point ≥3σ from center, either side</td></tr>
+          <tr><td>2</td><td>"9 consecutive same side"</td><td>9 consecutive points all above or all below center</td></tr>
+          <tr><td>3</td><td>"6 consecutive trending"</td><td>6 consecutive strictly increasing, or strictly decreasing, points</td></tr>
+          <tr><td>4</td><td>"14 consecutive alternating"</td><td>14 consecutive points, each step strictly flipping direction</td></tr>
+          <tr><td>5</td><td>"2 of 3 beyond 2-sigma"</td><td>2 of last 3 points ≥2σ, same side</td></tr>
+          <tr><td>6</td><td>"4 of 5 beyond 1-sigma"</td><td>4 of last 5 points ≥1σ, same side</td></tr>
+          <tr><td>7</td><td>"15 consecutive within 1-sigma"</td><td>15 consecutive points all within 1σ (suspiciously tight clustering)</td></tr>
+          <tr><td>8</td><td>"8 consecutive beyond 1-sigma (either side)"</td><td>8 consecutive points all &gt;1σ from center, none within (a two-process mixture signature)</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </details>
+
+    <h3 id="nelson-rule3-trend">Nelson Rule 3 / Trend Detection</h3>
+    <div class="table-wrap"><table>
+      <tbody>
+      <tr><th>1. Plain English</th><td>The score has been steadily climbing (or falling) for several builds in a row — even if no single point has crossed a control limit yet.</td></tr>
+      <tr><th>2. Technical</th><td><code>src/spc/trendDetection.ts</code>'s <code>detectTrend()</code> combines two independent signals: Nelson Rule 3 (6 consecutive strictly monotonic points) <strong>OR</strong> an ordinary-least-squares linear regression over the last 10 points, flagged significant when <code>|correlation| ≥ 0.7</code> and the slope is non-zero.</td></tr>
+      <tr><th>3. What it detects</th><td>Slow, sustained drift in one direction — the "creeping accessibility debt" case a single-point rule structurally cannot see.</td></tr>
+      <tr><th>4. Why it matters</th><td>It's the earliest possible warning: by the time a control-limit rule fires, a trend detector may have already been flagging the same builds for several cycles.</td></tr>
+      <tr><th>5. How this project uses it</th><td>Trend defaults to a <strong>WARN</strong> in the gate policy, and only when <code>direction === 'WORSENING'</code> (an improving trend never produces a warning — see <code>onlyWorsening: true</code>).</td></tr>
+      <tr><th>6. Possible criticism</th><td>Combining a pattern rule and a regression test in one detector could double-count the same underlying drift.</td></tr>
+      <tr><th>7. How to answer</th><td>"That's deliberate redundancy, not double-counting — <code>detected = nelson.triggered || regressionSignificant</code> is a logical OR, so either signal alone is sufficient, and the reported result is a single boolean, not two separate warnings. The two methods catch slightly different shapes of drift: Nelson's rule needs strict monotonicity, the regression test tolerates small zig-zags as long as the overall correlation is strong."</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="control-limit-violation">Control-Limit Violations</h3>
+    <div class="table-wrap"><table>
+      <tbody>
+      <tr><th>1. Plain English</th><td>The latest build's score literally crossed the UCL or LCL line on the chart.</td></tr>
+      <tr><th>2. Technical</th><td><code>src/spc/spcEngine.ts</code>: <code>uclViolation = latest &gt; chart.uclX || latest &lt; chart.lclX</code> — a direct numeric comparison against the computed limits, independent of the rule evaluators.</td></tr>
+      <tr><th>3. What it detects</th><td>The same "3-sigma breach" concept as WECO/Nelson Rule 1, checked as a direct arithmetic comparison rather than via the generic pattern-matching helper.</td></tr>
+      <tr><th>4. Why it matters</th><td>It gives the gate policy a second, independent way to key off the same event (<code>spc.failOnUclViolation: true</code>), and it's what the dashboard highlights visually on the control chart.</td></tr>
+      <tr><th>5. How this project uses it</th><td>Set to <strong>FAIL</strong> by default in <code>gatePolicies.ts</code> — <code>spc.failOnUclViolation: true</code>.</td></tr>
+      <tr><th>6. Possible criticism</th><td>"Isn't this the same thing as WECO/Nelson Rule 1?"</td></tr>
+      <tr><th>7. How to answer</th><td>"Almost exactly, yes — both are testing whether the latest point is beyond 3σ. I kept them as separate signals in the gate's reason list because they answer slightly different questions in the codebase: the rule evaluators scan a whole window for a pattern, while <code>uclViolation</code> is a direct, single-point comparison the engine also needs for the chart itself. Having both means the gate output stays honest about why it fired, even though the two often fire together."</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="regression-spike">Regression Spike Detection</h3>
+    <div class="table-wrap"><table>
+      <tbody>
+      <tr><th>1. Plain English</th><td>This build's score jumped up by an unusually large amount compared to the last one, in the bad direction.</td></tr>
+      <tr><th>2. Technical</th><td><code>src/spc/regressionSpikeDetection.ts</code>: <code>detected = (latestMovingRange &gt; uclMR) &amp;&amp; (latest &gt; previous)</code> — both conditions required. The moving range must exceed its own control limit <strong>and</strong> the score must have gotten worse, not better.</td></tr>
+      <tr><th>3. What it detects</th><td>A same-build shock — one commit that visibly broke something, distinct from a slow trend.</td></tr>
+      <tr><th>4. Why it matters</th><td>It's the fastest possible "something just broke" alarm — it only needs two data points (this build and the previous one) to fire, unlike the pattern rules which need a window of several.</td></tr>
+      <tr><th>5. How this project uses it</th><td>Automatic <strong>FAIL</strong> in the default policy (<code>regression.onDetected: 'FAIL'</code>) — this is genuinely used in Experiment A, where it correctly fires at build 23, the exact build where the synthetic "deliberate regression" phase begins.</td></tr>
+      <tr><th>6. Possible criticism</th><td>Requiring <em>both</em> conditions (large jump AND worsening direction) means a build that improves dramatically never counts as a "regression spike" — is that a gap?</td></tr>
+      <tr><th>7. How to answer</th><td>"No — that's the point of the name. A large jump toward <em>better</em> accessibility isn't a regression, and penalizing it would be perverse. A large improvement can still register through other signals (e.g. it changes the center line for future builds), but it shouldn't itself trigger a failure."</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="cusum-drift">CUSUM / Drift Detection</h3>
+    <div class="table-wrap"><table>
+      <tbody>
+      <tr><th>1. Plain English</th><td>No single build looks alarming, but there's a small, consistent lean in one direction building up quietly across many builds.</td></tr>
+      <tr><th>2. Technical</th><td><code>src/spc/driftDetection.ts</code> implements a two-sided tabular CUSUM: <code>k = 0.5σ̂</code> (allowed slack), <code>h = 5σ̂</code> (alarm threshold). Running sums accumulate <code>max(0, x - (centerLine+k) + runningPlus)</code> and the mirror image below the center line; <code>direction = 'WORSENING'</code> if the upper sum exceeds <code>h</code>, <code>'IMPROVING'</code> if the lower sum does.</td></tr>
+      <tr><th>3. What it detects</th><td>Small, sustained shifts too gradual for any single-point rule to catch — CUSUM is specifically designed to be more sensitive than Shewhart-style rules to small, persistent shifts.</td></tr>
+      <tr><th>4. Why it matters</th><td>It complements the pattern rules and the trend detector: pattern rules need a strict shape (monotonic, alternating); CUSUM just needs a persistent lean, however irregular.</td></tr>
+      <tr><th>5. How this project uses it</th><td>Defaults to <strong>WARN</strong>, and (like trend) only when <code>direction === 'WORSENING'</code> — an improving drift never triggers a warning.</td></tr>
+      <tr><th>6. Possible criticism</th><td>CUSUM introduces two more tunable constants (<code>k</code>, <code>h</code>) — are 0.5σ and 5σ justified, or arbitrary?</td></tr>
+      <tr><th>7. How to answer</th><td>"They're the textbook-standard tabular CUSUM defaults (k = half a sigma of allowed slack, h = 5 sigma of accumulated evidence before alarming) — not tuned specifically for this dataset. That's a reasonable, defensible starting point, and a documented limitation if asked whether they were validated empirically against this project's own telemetry — they weren't; there isn't yet enough real production history to tune them against."</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 id="capability-cpu-cpk">Process Capability: Cpu / Cpk</h3>
+    <div class="table-wrap"><table>
+      <tbody>
+      <tr><th>1. Plain English</th><td>Even if the process is perfectly stable, is it stable at a <em>good enough</em> level? A process can be perfectly consistent and still consistently bad.</td></tr>
+      <tr><th>2. Technical</th><td><code>src/spc/capabilityAnalysis.ts</code>: <code>Cpu = (USL − X̄) / (3σ̂)</code>, a one-sided capability index against an upper specification limit (USL). <code>capable = Cpu ≥ 1.33</code>. If <code>σ̂ = 0</code> (a perfectly flat series), <code>Cpu</code> is reported as <code>null</code> to avoid a division by zero, and <code>capable</code> falls back to a direct <code>centerLine ≤ USL</code> check.</td></tr>
+      <tr><th>3. What it detects</th><td>Whether the process's <em>typical</em> behavior, not just its worst moment, comfortably clears an agreed quality bar.</td></tr>
+      <tr><th>4. Why it matters</th><td><code>Cpu &lt; 1.0</code> means the process cannot reliably meet the specification even with zero special-cause events — that's a signal the baseline/policy needs attention, not any individual build.</td></tr>
+      <tr><th>5. How this project uses it</th><td>Only computed when a <code>usl</code> is explicitly supplied — the production path and Experiment A never supply one (capability is <code>null</code> for both). It's computed in Experiment B with <code>USL = 40</code>, producing <code>Cpu ≈ 2.9811</code>. Gate policy: <code>Cpu &lt; 1.33</code> → WARN, <code>Cpu &lt; 1.0</code> → FAIL.</td></tr>
+      <tr><th>6. Possible criticism</th><td>Why is capability analysis missing from Experiment A and from the real production history?</td></tr>
+      <tr><th>7. How to answer</th><td>"See <a href='experiments.html#cpk-excluded'>Why Cpk Was Excluded From Experiment A</a> — it's a deliberate methodological choice, not an oversight. Capability analysis assumes one stable regime; Experiment A is deliberately five different regimes. Production history is simply too short (4 builds) for any capability number to be meaningful yet."</td></tr>
+      </tbody>
+    </table></div>
+
+    <h2 id="window-diagram">Expanding History vs. Trailing Window</h2>
+    <p>Two different ways to decide "how much history does the SPC engine look at right now," used in different places in this project.</p>
+    <div class="diagram">
+      <svg viewBox="0 0 880 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Expanding history versus trailing window comparison, 30-build cohort, snapshot at build 23">
+        <style>
+          .wtxt { font-family: var(--sans); font-size: 11.5px; fill: var(--text); }
+          .wlab { font-family: var(--sans); font-weight: 700; font-size: 13px; fill: var(--accent-dark); }
+          .cell { stroke: var(--border); stroke-width: 1; }
+          .used { fill: var(--accent-soft); }
+          .unused { fill: var(--bg-sunken); }
+        </style>
+        <text x="20" y="16" class="wlab">EXPANDING_HISTORY — snapshot at build 23</text>
+        <text x="20" y="34" class="wtxt">Every prior build (1–23) is still in the window:</text>
+
+        <rect class="cell used" x="20" y="60" width="26" height="30"></rect>
+          <text x="33" y="79" text-anchor="middle" class="wtxt" font-size="9.5">1</text>
+          <rect class="cell used" x="48" y="60" width="26" height="30"></rect>
+          <text x="61" y="79" text-anchor="middle" class="wtxt" font-size="9.5">2</text>
+          <rect class="cell used" x="76" y="60" width="26" height="30"></rect>
+          <text x="89" y="79" text-anchor="middle" class="wtxt" font-size="9.5">3</text>
+          <rect class="cell used" x="104" y="60" width="26" height="30"></rect>
+          <text x="117" y="79" text-anchor="middle" class="wtxt" font-size="9.5">4</text>
+          <rect class="cell used" x="132" y="60" width="26" height="30"></rect>
+          <text x="145" y="79" text-anchor="middle" class="wtxt" font-size="9.5">5</text>
+          <rect class="cell used" x="160" y="60" width="26" height="30"></rect>
+          <text x="173" y="79" text-anchor="middle" class="wtxt" font-size="9.5">6</text>
+          <rect class="cell used" x="188" y="60" width="26" height="30"></rect>
+          <text x="201" y="79" text-anchor="middle" class="wtxt" font-size="9.5">7</text>
+          <rect class="cell used" x="216" y="60" width="26" height="30"></rect>
+          <text x="229" y="79" text-anchor="middle" class="wtxt" font-size="9.5">8</text>
+          <rect class="cell used" x="244" y="60" width="26" height="30"></rect>
+          <text x="257" y="79" text-anchor="middle" class="wtxt" font-size="9.5">9</text>
+          <rect class="cell used" x="272" y="60" width="26" height="30"></rect>
+          <text x="285" y="79" text-anchor="middle" class="wtxt" font-size="9.5">10</text>
+          <rect class="cell used" x="300" y="60" width="26" height="30"></rect>
+          <text x="313" y="79" text-anchor="middle" class="wtxt" font-size="9.5">11</text>
+          <rect class="cell used" x="328" y="60" width="26" height="30"></rect>
+          <text x="341" y="79" text-anchor="middle" class="wtxt" font-size="9.5">12</text>
+          <rect class="cell used" x="356" y="60" width="26" height="30"></rect>
+          <text x="369" y="79" text-anchor="middle" class="wtxt" font-size="9.5">13</text>
+          <rect class="cell used" x="384" y="60" width="26" height="30"></rect>
+          <text x="397" y="79" text-anchor="middle" class="wtxt" font-size="9.5">14</text>
+          <rect class="cell used" x="412" y="60" width="26" height="30"></rect>
+          <text x="425" y="79" text-anchor="middle" class="wtxt" font-size="9.5">15</text>
+          <rect class="cell used" x="440" y="60" width="26" height="30"></rect>
+          <text x="453" y="79" text-anchor="middle" class="wtxt" font-size="9.5">16</text>
+          <rect class="cell used" x="468" y="60" width="26" height="30"></rect>
+          <text x="481" y="79" text-anchor="middle" class="wtxt" font-size="9.5">17</text>
+          <rect class="cell used" x="496" y="60" width="26" height="30"></rect>
+          <text x="509" y="79" text-anchor="middle" class="wtxt" font-size="9.5">18</text>
+          <rect class="cell used" x="524" y="60" width="26" height="30"></rect>
+          <text x="537" y="79" text-anchor="middle" class="wtxt" font-size="9.5">19</text>
+          <rect class="cell used" x="552" y="60" width="26" height="30"></rect>
+          <text x="565" y="79" text-anchor="middle" class="wtxt" font-size="9.5">20</text>
+          <rect class="cell used" x="580" y="60" width="26" height="30"></rect>
+          <text x="593" y="79" text-anchor="middle" class="wtxt" font-size="9.5">21</text>
+          <rect class="cell used" x="608" y="60" width="26" height="30"></rect>
+          <text x="621" y="79" text-anchor="middle" class="wtxt" font-size="9.5">22</text>
+          <rect class="cell used" x="636" y="60" width="26" height="30"></rect>
+          <text x="649" y="79" text-anchor="middle" class="wtxt" font-size="9.5">23</text>
+          <rect class="cell unused" x="664" y="60" width="26" height="30"></rect>
+          <text x="677" y="79" text-anchor="middle" class="wtxt" font-size="9.5">24</text>
+          <rect class="cell unused" x="692" y="60" width="26" height="30"></rect>
+          <text x="705" y="79" text-anchor="middle" class="wtxt" font-size="9.5">25</text>
+          <rect class="cell unused" x="720" y="60" width="26" height="30"></rect>
+          <text x="733" y="79" text-anchor="middle" class="wtxt" font-size="9.5">26</text>
+          <rect class="cell unused" x="748" y="60" width="26" height="30"></rect>
+          <text x="761" y="79" text-anchor="middle" class="wtxt" font-size="9.5">27</text>
+          <rect class="cell unused" x="776" y="60" width="26" height="30"></rect>
+          <text x="789" y="79" text-anchor="middle" class="wtxt" font-size="9.5">28</text>
+          <rect class="cell unused" x="804" y="60" width="26" height="30"></rect>
+          <text x="817" y="79" text-anchor="middle" class="wtxt" font-size="9.5">29</text>
+          <rect class="cell unused" x="832" y="60" width="26" height="30"></rect>
+          <text x="845" y="79" text-anchor="middle" class="wtxt" font-size="9.5">30</text>
+
+        <text x="20" y="122" class="wlab">TRAILING_WINDOW (size 15) — same snapshot, build 23</text>
+        <text x="20" y="140" class="wtxt">Only builds 9–23 (the most recent 15) remain; builds 1–8 have aged out:</text>
+
+        <rect class="cell unused" x="20" y="152" width="26" height="30"></rect>
+          <text x="33" y="171" text-anchor="middle" class="wtxt" font-size="9.5">1</text>
+          <rect class="cell unused" x="48" y="152" width="26" height="30"></rect>
+          <text x="61" y="171" text-anchor="middle" class="wtxt" font-size="9.5">2</text>
+          <rect class="cell unused" x="76" y="152" width="26" height="30"></rect>
+          <text x="89" y="171" text-anchor="middle" class="wtxt" font-size="9.5">3</text>
+          <rect class="cell unused" x="104" y="152" width="26" height="30"></rect>
+          <text x="117" y="171" text-anchor="middle" class="wtxt" font-size="9.5">4</text>
+          <rect class="cell unused" x="132" y="152" width="26" height="30"></rect>
+          <text x="145" y="171" text-anchor="middle" class="wtxt" font-size="9.5">5</text>
+          <rect class="cell unused" x="160" y="152" width="26" height="30"></rect>
+          <text x="173" y="171" text-anchor="middle" class="wtxt" font-size="9.5">6</text>
+          <rect class="cell unused" x="188" y="152" width="26" height="30"></rect>
+          <text x="201" y="171" text-anchor="middle" class="wtxt" font-size="9.5">7</text>
+          <rect class="cell unused" x="216" y="152" width="26" height="30"></rect>
+          <text x="229" y="171" text-anchor="middle" class="wtxt" font-size="9.5">8</text>
+          <rect class="cell used" x="244" y="152" width="26" height="30"></rect>
+          <text x="257" y="171" text-anchor="middle" class="wtxt" font-size="9.5">9</text>
+          <rect class="cell used" x="272" y="152" width="26" height="30"></rect>
+          <text x="285" y="171" text-anchor="middle" class="wtxt" font-size="9.5">10</text>
+          <rect class="cell used" x="300" y="152" width="26" height="30"></rect>
+          <text x="313" y="171" text-anchor="middle" class="wtxt" font-size="9.5">11</text>
+          <rect class="cell used" x="328" y="152" width="26" height="30"></rect>
+          <text x="341" y="171" text-anchor="middle" class="wtxt" font-size="9.5">12</text>
+          <rect class="cell used" x="356" y="152" width="26" height="30"></rect>
+          <text x="369" y="171" text-anchor="middle" class="wtxt" font-size="9.5">13</text>
+          <rect class="cell used" x="384" y="152" width="26" height="30"></rect>
+          <text x="397" y="171" text-anchor="middle" class="wtxt" font-size="9.5">14</text>
+          <rect class="cell used" x="412" y="152" width="26" height="30"></rect>
+          <text x="425" y="171" text-anchor="middle" class="wtxt" font-size="9.5">15</text>
+          <rect class="cell used" x="440" y="152" width="26" height="30"></rect>
+          <text x="453" y="171" text-anchor="middle" class="wtxt" font-size="9.5">16</text>
+          <rect class="cell used" x="468" y="152" width="26" height="30"></rect>
+          <text x="481" y="171" text-anchor="middle" class="wtxt" font-size="9.5">17</text>
+          <rect class="cell used" x="496" y="152" width="26" height="30"></rect>
+          <text x="509" y="171" text-anchor="middle" class="wtxt" font-size="9.5">18</text>
+          <rect class="cell used" x="524" y="152" width="26" height="30"></rect>
+          <text x="537" y="171" text-anchor="middle" class="wtxt" font-size="9.5">19</text>
+          <rect class="cell used" x="552" y="152" width="26" height="30"></rect>
+          <text x="565" y="171" text-anchor="middle" class="wtxt" font-size="9.5">20</text>
+          <rect class="cell used" x="580" y="152" width="26" height="30"></rect>
+          <text x="593" y="171" text-anchor="middle" class="wtxt" font-size="9.5">21</text>
+          <rect class="cell used" x="608" y="152" width="26" height="30"></rect>
+          <text x="621" y="171" text-anchor="middle" class="wtxt" font-size="9.5">22</text>
+          <rect class="cell used" x="636" y="152" width="26" height="30"></rect>
+          <text x="649" y="171" text-anchor="middle" class="wtxt" font-size="9.5">23</text>
+          <rect class="cell unused" x="664" y="152" width="26" height="30"></rect>
+          <text x="677" y="171" text-anchor="middle" class="wtxt" font-size="9.5">24</text>
+          <rect class="cell unused" x="692" y="152" width="26" height="30"></rect>
+          <text x="705" y="171" text-anchor="middle" class="wtxt" font-size="9.5">25</text>
+          <rect class="cell unused" x="720" y="152" width="26" height="30"></rect>
+          <text x="733" y="171" text-anchor="middle" class="wtxt" font-size="9.5">26</text>
+          <rect class="cell unused" x="748" y="152" width="26" height="30"></rect>
+          <text x="761" y="171" text-anchor="middle" class="wtxt" font-size="9.5">27</text>
+          <rect class="cell unused" x="776" y="152" width="26" height="30"></rect>
+          <text x="789" y="171" text-anchor="middle" class="wtxt" font-size="9.5">28</text>
+          <rect class="cell unused" x="804" y="152" width="26" height="30"></rect>
+          <text x="817" y="171" text-anchor="middle" class="wtxt" font-size="9.5">29</text>
+          <rect class="cell unused" x="832" y="152" width="26" height="30"></rect>
+          <text x="845" y="171" text-anchor="middle" class="wtxt" font-size="9.5">30</text>
+
+        <text x="20" y="210" class="wtxt" fill="var(--text-muted)">Shaded = inside the analysis window at build 23. Both methods are walk-forward: at build N, neither ever sees build N+1 or later.</text>
+      </svg>
+      <div class="diagram-caption">See the inline build markers below for the exact same idea rendered as simple numbered blocks.</div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <caption>Build 23 snapshot — which builds are "in view" under each method (30-build Experiment A cohort)</caption>
+        <thead><tr><th>Method</th><th>Builds in the window at build 23</th><th>Window size</th></tr></thead>
+        <tbody>
+        <tr><td>EXPANDING_HISTORY</td><td>1 – 23 (everything so far)</td><td>Grows every build; unbounded</td></tr>
+        <tr><td>TRAILING_WINDOW (15)</td><td>9 – 23 (only the most recent 15)</td><td>Fixed at 15; old builds age out</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="box box-technical">
+      <div class="box-label">Technical explanation</div>
+      <p><code>src/spc/experimentAnalysis.ts</code>'s <code>selectHistoryWindow()</code>:</p>
+      <pre><code>if (method === 'EXPANDING_HISTORY') {
+  return records.slice(0, buildNumber);
+}
+const start = Math.max(0, buildNumber - windowSize);
+return records.slice(start, buildNumber);</code></pre>
+      <p>Note this windowing logic lives <em>only</em> in the experiment-analysis module, used for the walk-forward comparative study described on the <a href="experiments.html">Experiments</a> page. The production SPC path (<code>computeSpcReport()</code> called with <code>loadTelemetryHistory()</code>, with no windowing applied) is always expanding-history in practice, simply because nothing currently truncates it.</p>
+    </div>
+
+    <div class="footer-note">Sources: <code>src/spc/controlChart.ts</code>, <code>westernElectricRules.ts</code>, <code>nelsonRules.ts</code>, <code>ruleHelpers.ts</code>, <code>trendDetection.ts</code>, <code>regressionSpikeDetection.ts</code>, <code>driftDetection.ts</code>, <code>capabilityAnalysis.ts</code>, <code>spcEngine.ts</code>, <code>experimentAnalysis.ts</code>.</div>
+  </main>
+</div>
+<script src="script.js"></script>
+</body>
+</html>

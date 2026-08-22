@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telemetry (L4) — Project Guide</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">Accessibility Telemetry Framework</div>
+    <div class="brand-sub">Project Guide &amp; Viva Preparation</div>
+    <input id="search-box" type="search" placeholder="Search the guide…" autocomplete="off" />
+    <div id="search-results"></div>
+    <nav>
+      <ul><li><a href="index.html">Home</a></li></ul>
+      <div class="group-label">Understand the System</div>
+      <ul>
+        <li><a href="architecture.html">Architecture (L1–L7)</a></li>
+        <li><a href="telemetry.html">Telemetry</a></li>
+        <li><a href="spc.html">SPC From Zero</a></li>
+        <li><a href="experiments.html">Experiments A &amp; B</a></li>
+        <li><a href="gates.html">Quality Gates</a></li>
+        <li><a href="cicd.html">CI/CD Pipeline</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+      <div class="group-label">Use It</div>
+      <ul>
+        <li><a href="testing.html">Commands</a></li>
+        <li><a href="demo.html">Reviewer Demo Script</a></li>
+      </ul>
+      <div class="group-label">Prepare for Viva</div>
+      <ul>
+        <li><a href="cheatsheet.html">Cheat Sheet</a></li>
+        <li><a href="questions.html">Reviewer Q&amp;A (40+)</a></li>
+        <li><a href="tough-questions.html">Tough Questions</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="glossary.html">Glossary</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="page-kicker">Layer 4</div>
+    <h1>Telemetry: Turning a Scan Into History</h1>
+    <p class="lede">Telemetry is what makes this project a <em>process</em> monitor instead of a one-off test runner. Every build leaves a permanent, small trace, and it's that trace, accumulated over time, that the SPC engine reasons over.</p>
+
+    <h2 id="what-is-telemetry">What Is Telemetry, Here?</h2>
+    <div class="box box-beginner">
+      <div class="box-label">Beginner explanation</div>
+      <p>Telemetry just means "measurements collected automatically, over time." In this project, every time the accessibility tests run, the system writes down one small file describing how that run went — how many accessibility problems were found, how severe they were, and a single summary number. Nothing is discarded; every one of those files stays around, so later you can look back and see the whole history.</p>
+    </div>
+    <div class="box box-technical">
+      <div class="box-label">Technical explanation</div>
+      <p>Concretely, telemetry is a versioned, schema-typed JSON record (<code>TelemetryRecord</code>, defined once in <code>src/telemetry/schema.ts</code>) written once per test run to <code>telemetry/history/build-&lt;commitSha&gt;.json</code>. The schema is the single source of truth both the collector (which writes it) and the SPC engine (which reads it) import — so the two can never silently drift apart without a TypeScript compile error.</p>
+    </div>
+
+    <h2 id="build-record">What Is a Build Record?</h2>
+    <p>A real example, taken directly from <code>telemetry/history/build-66a0c96c269e114d0a2f73eb203c4683baf00ea7.json</code> (one of the 4 records currently committed to the repository):</p>
+    <pre><code>{
+  "buildId": "local-1785982626098",
+  "commitSha": "66a0c96c269e114d0a2f73eb203c4683baf00ea7",
+  "branch": "main",
+  "triggeredBy": "manual",
+  "timestamp": "2026-08-06T02:17:07.294Z",
+  "wcagLevel": "AA",
+  "pagesScanned": 8,
+  "violationsBySeverity": { "critical": 0, "serious": 4, "moderate": 0, "minor": 2 },
+  "violationsByRule": [
+    { "ruleId": "target-size", "impact": "serious",
+      "wcagCriteria": ["wcag22aa", "wcag258"], "occurrences": 3, "pages": ["Product Listing"] },
+    { "ruleId": "image-redundant-alt", "impact": "minor",
+      "wcagCriteria": [], "occurrences": 2, "pages": ["Shopping Cart"] },
+    { "ruleId": "frame-title", "impact": "serious",
+      "wcagCriteria": ["wcag2a", "wcag412"], "occurrences": 1, "pages": ["Contact Us"] }
+  ],
+  "defectScore": 22,
+  "totalNodesFailed": 6
+}</code></pre>
+    <p>Note <code>buildId: "local-1785982626098"</code> — this record was produced by a local/manual run, not a CI push. <code>resolveBuildId()</code> in <code>src/telemetry/reporter.ts</code> falls back to <code>local-${Date.now()}</code> whenever <code>GITHUB_RUN_ID</code>/<code>BUILD_ID</code> aren't set, which is exactly what happens outside CI.</p>
+
+    <div class="table-wrap">
+      <table>
+        <caption>Every field in <code>TelemetryRecord</code> (<code>src/telemetry/schema.ts</code>)</caption>
+        <thead><tr><th>Field</th><th>Type</th><th>Meaning</th></tr></thead>
+        <tbody>
+        <tr><td><code>buildId</code></td><td>string</td><td>GitHub Actions run ID in CI, otherwise <code>local-&lt;timestamp&gt;</code>.</td></tr>
+        <tr><td><code>commitSha</code></td><td>string</td><td>Git commit this record belongs to; also drives the filename.</td></tr>
+        <tr><td><code>branch</code></td><td>string</td><td>Git branch at scan time.</td></tr>
+        <tr><td><code>triggeredBy</code></td><td><code>'push'|'pull_request'|'schedule'|'manual'</code></td><td><code>'manual'</code> outside CI; derived from <code>GITHUB_EVENT_NAME</code> inside CI.</td></tr>
+        <tr><td><code>timestamp</code></td><td>string (ISO 8601)</td><td>Stamped at collection time.</td></tr>
+        <tr><td><code>wcagLevel</code></td><td><code>'A'|'AA'|'AAA'</code></td><td>Fixed to <code>'AA'</code> by <code>src/config/axe.config.ts</code>'s <code>WCAG_LEVEL</code>.</td></tr>
+        <tr><td><code>pagesScanned</code></td><td>number</td><td>How many routes were scanned this run (8, per <code>sites.config.ts</code>).</td></tr>
+        <tr><td><code>violationsBySeverity</code></td><td>object</td><td><code>{ critical, serious, moderate, minor }</code> counts, summed across all pages.</td></tr>
+        <tr><td><code>violationsByRule</code></td><td>array</td><td>One entry per distinct axe rule ID, sorted by occurrence count, with which pages it appeared on.</td></tr>
+        <tr><td><code>defectScore</code></td><td>number</td><td>The single severity-weighted number the SPC engine actually tracks. See below.</td></tr>
+        <tr><td><code>totalNodesFailed</code></td><td>number</td><td>Sum of all four severity buckets.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="why-store-telemetry">Why Do We Store Telemetry At All?</h2>
+    <div class="box box-beginner">
+      <div class="box-label">Beginner explanation</div>
+      <p>If you only ever look at "did this one build pass or fail," you can never tell whether things are getting better or worse over time — you only see one frame of a movie. Storing every build's number lets you watch the whole movie: is the defect score bouncing around a stable average, or is it climbing?</p>
+    </div>
+
+    <h2 id="defect-score">What Is <code>defectScore</code>?</h2>
+    <p>It's the one number every other layer of this project actually cares about — the "individual measurement" the control chart plots.</p>
+    <pre><code>// src/telemetry/collector.ts
+const SEVERITY_WEIGHT = { critical: 10, serious: 5, moderate: 2, minor: 1 };
+
+function computeDefectScore(violationsBySeverity) {
+  return violationsBySeverity.critical * 10
+       + violationsBySeverity.serious  * 5
+       + violationsBySeverity.moderate * 2
+       + violationsBySeverity.minor    * 1;
+}</code></pre>
+    <p>For the example record above: <code>0×10 + 4×5 + 0×2 + 2×1 = 22</code>, matching <code>"defectScore": 22</code> exactly.</p>
+    <div class="box box-technical">
+      <div class="box-label">Technical explanation</div>
+      <p>This mirrors the classic severity-weighted defect density formula from software quality engineering: it exists so that one critical WCAG failure isn't statistically invisible next to ten minor ones. A page with 10 minor violations (score 10) is treated as less serious than a page with a single critical violation (score 10 needs 2 critical... actually 1 critical alone already scores 10) — the weighting is deliberately front-loaded toward severity, not raw count.</p>
+    </div>
+    <div class="box box-question">
+      <div class="box-label">Possible reviewer question</div>
+      <p>"Why these specific weights — 10/5/2/1 — and not something else?" Be honest: this is a fixed, documented policy choice (<code>ARCHITECTURE.md</code> §8.2), not something empirically derived from data in this project. It mirrors a common industry convention for severity-weighted defect density; it was not tuned against ShopSmart's own violation distribution. That's a reasonable thing to say plainly if asked — see <a href="limitations.html">Limitations</a>.</p>
+    </div>
+
+    <h2 id="history-vs-experiments">Production History vs. Experiments — Why Are They Different?</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th><code>telemetry/history/</code></th><th><code>telemetry/experiments/</code></th></tr></thead>
+        <tbody>
+        <tr><td>What it is</td><td>Real telemetry from actually running Playwright against ShopSmart.</td><td>Synthetic, seeded data generated by code specifically to exercise the SPC engine under known conditions.</td></tr>
+        <tr><td>Current size</td><td>4 committed records (real commit SHAs: <code>66a0c96c…</code>, <code>a8169fce…</code>, <code>b4f83d0b…</code>, <code>de20fcf2…</code>).</td><td>Two 30-record cohorts: <code>spc-validation-cohort/</code> (Experiment A) and <code>stable-capability-cohort/</code> (Experiment B).</td></tr>
+        <tr><td>Generator</td><td><code>src/telemetry/reporter.ts</code> + <code>collector.ts</code>, from real axe-core scans.</td><td><code>src/telemetry/experimentGenerator.ts</code> and <code>stableProcessGenerator.ts</code>, from a fixed random seed.</td></tr>
+        <tr><td>Purpose</td><td>What CI actually gates on and what the dashboard's "Production Process" panel shows.</td><td>Proving the SPC methodology works correctly under conditions you can't yet get from 4 real builds — 30 builds, five deliberate phases, or one deliberately stable regime.</td></tr>
+        <tr><td>Mutable?</td><td>Append-only. Never overwritten — <code>writeTelemetryRecordTo()</code> appends a numeric suffix on a filename collision rather than clobbering an existing file.</td><td>Regenerated wholesale each time the generator script runs (same seed → byte-identical output, by design — see <code>verify-experiment.ts</code>'s reproducibility check).</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="box box-beginner">
+      <div class="box-label">Beginner explanation</div>
+      <p>Think of <code>telemetry/history/</code> as your real diary — only 4 entries so far, because the project is young. <code>telemetry/experiments/</code> is more like a flight simulator: synthetic scenarios built to test whether the statistics behave correctly under conditions (30 builds, a known regression, a known stable process) that the real diary doesn't have enough entries to show yet.</p>
+    </div>
+
+    <h2 id="artifact-only">Why Is CI-Generated Telemetry Artifact-Only?</h2>
+    <p>When the GitHub Actions workflow runs the accessibility scan, it writes a brand-new <code>telemetry/history/build-&lt;sha&gt;.json</code> file — but that file is <strong>never committed back into the repository</strong>. It leaves the CI runner only as a downloadable workflow artifact.</p>
+    <div class="box box-technical">
+      <div class="box-label">Technical explanation</div>
+      <p>The workflow declares <code>permissions: contents: read</code> at the top of <code>.github/workflows/accessibility-ci.yml</code>, with the comment "this workflow never pushes, comments, or deploys; it only reads the checked-out repo and uploads artifacts." There is no <code>git commit</code> or <code>git push</code> step anywhere in the file. The only way the new record leaves the runner is:</p>
+      <pre><code>- name: Upload quality evidence (dashboard, telemetry, gate verdict, reports)
+  if: always()
+  uses: actions/upload-artifact@v4
+  with:
+    name: quality-evidence-${{ github.run_id }}
+    path: |
+      dashboard/
+      telemetry/aggregated/
+      telemetry/history/
+      reports/
+    if-no-files-found: warn
+    retention-days: 30</code></pre>
+    </div>
+    <div class="box box-say">
+      <div class="box-label">What I should say</div>
+      <p>"I kept CI read-only on purpose. If the pipeline could push commits back into the repository, every CI run would create a new commit, and that gets messy fast — merge conflicts on a shared branch, an ever-growing history nobody curates, and a workflow that suddenly needs write credentials it didn't need before. Instead, the new telemetry record is captured as a 30-day workflow artifact — the evidence is preserved and downloadable, but the repository itself only grows when a human deliberately commits a new baseline build."</p>
+    </div>
+
+    <div class="footer-note">Sources: <code>src/telemetry/schema.ts</code>, <code>collector.ts</code>, <code>writer.ts</code>, <code>reporter.ts</code>; real files in <code>telemetry/history/</code> and <code>telemetry/experiments/</code>; <code>.github/workflows/accessibility-ci.yml</code>.</div>
+  </main>
+</div>
+<script src="script.js"></script>
+</body>
+</html>

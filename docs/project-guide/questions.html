@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reviewer Q&amp;A — Project Guide</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">Accessibility Telemetry Framework</div>
+    <div class="brand-sub">Project Guide &amp; Viva Preparation</div>
+    <input id="search-box" type="search" placeholder="Search the guide…" autocomplete="off" />
+    <div id="search-results"></div>
+    <nav>
+      <ul><li><a href="index.html">Home</a></li></ul>
+      <div class="group-label">Understand the System</div>
+      <ul>
+        <li><a href="architecture.html">Architecture (L1–L7)</a></li>
+        <li><a href="telemetry.html">Telemetry</a></li>
+        <li><a href="spc.html">SPC From Zero</a></li>
+        <li><a href="experiments.html">Experiments A &amp; B</a></li>
+        <li><a href="gates.html">Quality Gates</a></li>
+        <li><a href="cicd.html">CI/CD Pipeline</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+      <div class="group-label">Use It</div>
+      <ul>
+        <li><a href="testing.html">Commands</a></li>
+        <li><a href="demo.html">Reviewer Demo Script</a></li>
+      </ul>
+      <div class="group-label">Prepare for Viva</div>
+      <ul>
+        <li><a href="cheatsheet.html">Cheat Sheet</a></li>
+        <li><a href="questions.html">Reviewer Q&amp;A (40+)</a></li>
+        <li><a href="tough-questions.html">Tough Questions</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="glossary.html">Glossary</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="page-kicker">Viva preparation</div>
+    <h1>Reviewer Q&amp;A</h1>
+    <p class="lede">51 questions across 14 categories, based specifically on this repository — not generic viva questions. Every answer is something you can honestly say; where the honest answer is "this is a limitation," it says so.</p>
+
+    <div class="toc-inline">
+      <strong>Categories</strong>
+      <ul>
+        <li><a href="#cat-basic">Basic</a></li>
+        <li><a href="#cat-architecture">Architecture</a></li>
+        <li><a href="#cat-accessibility">Accessibility</a></li>
+        <li><a href="#cat-telemetry">Telemetry</a></li>
+        <li><a href="#cat-spc">SPC</a></li>
+        <li><a href="#cat-experiments">Experiments</a></li>
+        <li><a href="#cat-gates">Quality Gates</a></li>
+        <li><a href="#cat-cicd">CI/CD</a></li>
+        <li><a href="#cat-dashboard">Dashboard</a></li>
+        <li><a href="#cat-methodology">Research Methodology</a></li>
+        <li><a href="#cat-security">Security</a></li>
+        <li><a href="#cat-reproducibility">Reproducibility</a></li>
+        <li><a href="#cat-limitations">Limitations</a></li>
+        <li><a href="#cat-difficult">Difficult</a></li>
+      </ul>
+    </div>
+
+    <h2 id="cat-basic">Basic</h2>
+
+    <div class="qa-card">
+      <h4>Q1. What did you build?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you can summarize your own project without reading source code.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"A framework that scans a demo shopping site for accessibility problems on every build, tracks the defect score over time using Statistical Process Control, and uses that statistical signal to automatically decide whether a build is safe to merge."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"What's the one number the whole system is built around?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"<code>defectScore</code> — a severity-weighted sum, 10 points per critical violation, 5 per serious, 2 per moderate, 1 per minor, computed once per build in <code>src/telemetry/collector.ts</code>."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q2. What problem does this solve that existing tools don't?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you understand your own research contribution, not just the implementation.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"Existing tools like axe CLI integrations, pa11y-ci, or Lighthouse CI accessibility budgets all use static threshold gating — fail if the count exceeds a fixed number. That can't tell a one-off blip from a sustained regression, and it's blind to slow, creeping degradation across many builds. My framework treats the defect count as a process to be monitored statistically, not just measured once."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Is that a novel statistical method?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"No — SPC itself is a well-established manufacturing discipline. My contribution is the bridge between SPC/software-quality engineering and automated WCAG accessibility testing specifically, which isn't a solved or common practice, per ARCHITECTURE.md §9."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q3. What's the difference between axe-core and your framework?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you understand you built infrastructure around a tool, not a competitor to it.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"axe-core is the rule engine that actually detects individual WCAG violations on a page — I didn't write that, Deque did, and I use it exactly as-is via <code>@axe-core/playwright</code>. My framework is everything around it: turning many scans into a measured process, applying SPC, and gating CI on the result."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Where exactly does axe-core get invoked?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"One place only: <code>createAxeBuilder()</code> in <code>src/utils/accessibilityScanner.ts</code>, which is the single constructor for <code>AxeBuilder</code> used everywhere, configured with the WCAG tags from <code>src/config/axe.config.ts</code>."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q4. Who is the intended user of this system?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether the design decisions map to a real audience.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"A development team's quality engineer or accessibility lead — someone who wants CI to automatically block genuine regressions without needing to manually eyeball every scan result, and who wants a dashboard they can point to as evidence during an accessibility audit."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Does an individual developer get any feedback, or only the team lead?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"The gate verdict becomes a required PR status check, so any developer opening a PR sees PASS/WARN/FAIL directly on their own pull request — plus GitHub Actions annotations from <code>ciAdapter.ts</code> pointing at the specific triggered reasons."</div>
+    </div>
+
+    <h2 id="cat-architecture">Architecture</h2>
+
+    <div class="qa-card">
+      <h4>Q5. Walk me through what happens when a build runs.</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you actually know the pipeline, not just the marketing summary.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>See the full 12-step walkthrough on <a href="architecture.html#data-flow">Architecture → One Build, File by File</a> — rehearse it until you can say it without looking, naming real files (<code>reporter.ts</code>, <code>collector.ts</code>, <code>writer.ts</code>, <code>spcEngine.ts</code>, <code>qualityGateEvaluator.ts</code>, <code>ciAdapter.ts</code>) at each step.</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"How does a Playwright test's axe result actually reach the telemetry writer?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Each test attaches its raw axe result as a Playwright attachment named <code>axe-results</code>. A custom reporter, <code>TelemetryReporter</code> in <code>src/telemetry/reporter.ts</code>, collects every attachment across the whole run in <code>onTestEnd()</code>, then in <code>onEnd()</code> calls <code>collectTelemetry()</code> once and writes a single record."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q6. Why seven layers instead of fewer?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether the layering was a deliberate design choice or accidental complexity.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"Each layer has exactly one job, and each boundary is a real file on disk, not just a mental separation. That's what lets me test the statistics engine, the gate engine, and the dashboard's data layer completely independently of a running browser — which is exactly what the six <code>verify:*</code> scripts do."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Give a concrete example of that independence."</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"<code>verify:spc</code> constructs synthetic number series by hand and checks that each SPC rule fires correctly — it never launches Playwright or touches ShopSmart at all."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q7. Why file boundaries (JSON on disk) between layers instead of function calls?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you understand the trade-off, not just the choice.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"It gives me a full audit trail for free — every intermediate state is inspectable JSON, which matters a lot for a dissertation's evaluation evidence. The cost is that it doesn't scale to huge volumes the way a real database would, which ARCHITECTURE.md §9 names directly as a threat to validity."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"What would you use instead at real production scale?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"A proper time-series store — ARCHITECTURE.md §7 names SQLite/Postgres as the considered alternative, rejected only because it adds infrastructure this dissertation's scope doesn't need."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q8. What's the actual difference between L5 (SPC) and L6 (Gate)?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you can separate "detect a signal" from "decide what to do about it."</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"L5 detects every statistically interesting pattern it can — twelve separate rule evaluations plus trend, spike, drift, and capability — and reports all of them. L6 is the only layer that decides which of those patterns matter enough to fail a build versus just warn about it. That decision lives entirely in one declarative policy object, <code>gatePolicies.ts</code>."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Could you change the policy without touching the SPC engine?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Yes — that's the whole point of keeping policy as data. Tightening <code>maxSeriousDefects</code> from 5 to 3 is a one-line change in <code>gatePolicies.ts</code> and touches nothing in <code>src/spc/</code>."</div>
+    </div>
+
+    <h2 id="cat-accessibility">Accessibility</h2>
+
+    <div class="qa-card">
+      <h4>Q9. What WCAG level do you test against?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Basic factual knowledge of your own configuration.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"AA — <code>src/config/axe.config.ts</code> fixes <code>WCAG_LEVEL = 'AA'</code>, and scans use the tag set <code>wcag2a, wcag2aa, wcag21aa, wcag22aa, best-practice</code>."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Why include <code>best-practice</code>, which isn't a WCAG level at all?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Five of the 24 seeded violation rules in the ShopSmart catalog — <code>heading-order</code>, <code>landmark-one-main</code>, <code>region</code>, <code>tabindex</code>, <code>aria-dialog-name</code> — carry no WCAG success-criterion tag at all; they're axe-core best-practice-only rules. Dropping that tag would silently omit them from every scan."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q10. Why axe-core over Lighthouse or pa11y?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether the tool choice was justified or arbitrary.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"axe-core is Deque's actively-maintained, de facto industry-standard rule engine with configurable WCAG tags, and it has an official Playwright binding. pa11y has thinner rule coverage, and Lighthouse treats accessibility as a secondary concern that's harder to isolate from its other audits." (ARCHITECTURE.md §7.)</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Did you evaluate this empirically, or is it a documented preference?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"It's a documented, reasoned choice in the architecture document, not an empirical head-to-head comparison run as part of this project — that's an honest limitation, not something I measured."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q11. How do you know your seeded ShopSmart violations are realistic?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether the test fixture is grounded in something real or just made up.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"They're documented in a ground-truth catalog, <code>docs/violations/catalog.json</code>, with 24 real axe-core rule IDs and 81 individual instances, each with a WCAG criterion, impact level, and remediation note — and each build's manifest records the actual axe-measured count alongside the catalog's expected count, so I can cross-check the real scanner against my own answer key."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Does the catalog say 81 or 80?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Honestly — the catalog's own prose in <code>catalog.md</code> says 80, but counting <code>instanceId</code> entries directly in <code>catalog.json</code> gives 81. That's a real off-by-one in the project's own documentation, and I'd rather say that plainly than repeat the wrong number."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q12. What pages does the framework scan?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Basic factual recall.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"Eight ShopSmart pages, listed in <code>src/config/sites.config.ts</code>: Login, Dashboard, Product Listing, Product Details, Shopping Cart, Checkout, User Profile, and Contact Us. Four of them require an authenticated session."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"How does authentication work for the ones that need it?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"<code>tests/auth.setup.ts</code> is a Playwright setup project that logs in once and saves <code>storageState</code> to <code>playwright/.auth/user.json</code>, which authenticated-page fixtures reuse without logging in per test."</div>
+    </div>
+
+    <h2 id="cat-telemetry">Telemetry</h2>
+
+    <div class="qa-card">
+      <h4>Q13. What is <code>defectScore</code> and why weighted?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you understand the one number everything downstream depends on.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>See <a href="telemetry.html#defect-score">Telemetry → What Is defectScore?</a> — <code>10×critical + 5×serious + 2×moderate + 1×minor</code>, so one critical violation isn't statistically invisible next to ten minor ones.</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Were these specific weights validated empirically?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"No — they mirror a common severity-weighted defect-density convention from software quality engineering, documented in ARCHITECTURE.md §8.2, but not tuned against ShopSmart's own violation distribution. That's an honest, named limitation."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q14. Why append-only telemetry?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether the data-integrity design was intentional.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"So the history the SPC engine reasons over can never be silently rewritten. <code>writeTelemetryRecordTo()</code> in <code>src/telemetry/writer.ts</code> never overwrites an existing file — on a filename collision it appends a numeric suffix instead."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"How is that actually enforced, not just documented?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"There's exactly one <code>fs.writeFileSync</code> call against <code>telemetry/history/</code> anywhere in <code>src/</code> — the one in <code>writer.ts</code>. No other code path in the whole source tree touches that directory."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q15. Why is CI-generated telemetry artifact-only?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether the CI design avoids a common anti-pattern (bots pushing commits).</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>See <a href="telemetry.html#artifact-only">Telemetry → Why Artifact-Only</a> — the workflow declares <code>permissions: contents: read</code> and has no git push step anywhere; new telemetry only leaves the runner as a 30-day <code>upload-artifact</code>.</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"So how does the committed 4-record baseline ever grow?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Only when a human deliberately downloads a real telemetry record and commits it — the same way the current 4 baseline builds got there. That's a manual, curated step, not automatic."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q16. What's the difference between <code>telemetry/history</code> and <code>telemetry/experiments</code>?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you can tell real evidence apart from validation fixtures.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>See <a href="telemetry.html#history-vs-experiments">Telemetry → Production vs. Experiments</a> — history is 4 real scans; experiments are two 30-record synthetic, seeded cohorts built to exercise the SPC engine under known conditions.</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Does the gate ever run against the experiment data in production?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"No — <code>evaluateFromDisk()</code>, the function CI actually calls, only reads <code>telemetry/history/</code>. The experiment cohorts are read separately, only by the experiment-analysis tooling and the dashboard's Experiment A/B panels."</div>
+    </div>
+
+    <h2 id="cat-spc">SPC</h2>
+
+    <div class="qa-card">
+      <h4>Q17. Why SPC instead of a simple threshold?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>The core research justification.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"A threshold can't distinguish a one-off blip from a sustained regression, and it's structurally blind to a slow drift where every individual build looks fine. SPC gives me control limits derived from the process's own recent behavior, plus pattern rules that catch multi-build trends a single threshold check never could."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Give a concrete case where SPC and a threshold would disagree."</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Nelson Rule 3 (6 consecutive trending builds) or the CUSUM drift detector can flag a build whose individual score is still well under any fixed threshold, because the concern is the direction over time, not the single value."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q18. Why an I-MR chart specifically?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Chart-selection reasoning, not just chart usage.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"Builds arrive one at a time, not in natural subgroups of several samples per time point — that's exactly the situation an Individuals-Moving-Range chart is designed for, as opposed to an X̄-R chart, which needs subgroups."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"How is sigma estimated without subgroups?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"From the moving range between consecutive individual points: <code>σ̂ = MR̄ / 1.128</code>, where 1.128 is the standard d2 constant for a subgroup size of 2."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q19. What's the difference between the Western Electric and Nelson rule sets?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you know your implementation exceeds what ARCHITECTURE.md originally described.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"Western Electric is 4 classic rules; Nelson (1984) is a superset of 8, adding alternating-pattern, strict-trend, tight-clustering, and mixture detection. Both are implemented in separate files and both run on every build — <code>westernElectricRules.ts</code> and <code>nelsonRules.ts</code>."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Which ones actually affect the gate's PASS/WARN/FAIL decision?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Only Rule 1 from each set is wired to FAIL. Every other triggered rule from either set defaults to WARN via <code>warnOnOtherTriggeredRules: true</code>."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q20. What's the difference between a control-limit violation and WECO/Nelson Rule 1?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Attention to a genuine overlap in the implementation.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>See <a href="spc.html#control-limit-violation">SPC → Control-Limit Violations</a> — they're testing the same underlying "beyond 3σ" event, computed two different ways: a direct numeric comparison against UCL/LCL versus a generic pattern-matching call. Both are wired to FAIL.</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Isn't that redundant?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Functionally, largely yes — but keeping them as separate signals in the gate's reason list keeps the output honest about why it fired, and the direct comparison is also what the chart itself needs internally, independent of the rule evaluators."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q21. Why CUSUM in addition to the pattern rules?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you understand CUSUM's specific statistical advantage.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"CUSUM accumulates small deviations over time, so it's specifically more sensitive than Shewhart-style pattern rules to a small, persistent shift that never individually crosses a sigma boundary but adds up."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"What are the k and h constants, and are they tuned?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"k = 0.5σ̂ (allowed slack), h = 5σ̂ (alarm threshold) — the textbook-standard tabular CUSUM defaults, not empirically tuned against this project's own telemetry. Honest limitation, not a hidden claim."</div>
+    </div>
+
+    <h2 id="cat-experiments">Experiments</h2>
+
+    <div class="qa-card">
+      <h4>Q22. Why do you need synthetic experiments at all?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether the synthetic data is a crutch or a deliberate methodology.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"Real production history is only 4 builds — nowhere near enough to prove an SPC methodology works, or to exercise scenarios like a 5-phase regime change or a stable capability study. Synthetic, seeded, reproducible cohorts let me validate the engine against known-correct conditions I control."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Are they clearly separated from real evidence?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Yes — different directories (<code>telemetry/experiments/</code> vs. <code>telemetry/history/</code>), different generators, and the gate's <code>evaluateFromDisk()</code> only ever reads real history, never the experiment cohorts."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q23. What does Experiment A actually prove?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you can state a concrete, falsifiable result, not just "it worked."</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"That expanding-history and trailing-window SPC analysis genuinely behave differently under changing conditions — expanding history let one early outlier (build 1) permanently distort Rule 1 for the back half of the cohort, while a 15-build trailing window eventually let that old point age out. Both are real, verified results: 1 PASS/3 WARN/26 FAIL for expanding, 1 PASS/5 WARN/24 FAIL for trailing."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Which method is 'better'?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Neither, unconditionally — that's the point. Expanding history has more statistical power early on; trailing windows stay current but discard old evidence. It's a genuine trade-off the experiment makes visible with real numbers."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q24. What does Experiment B actually prove?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you understand its narrower, specific purpose.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"That the Cpu/Cpk capability formula computes correctly and produces a sensible, verifiable result (Cpu ≈ 2.9811, USL=40) when its stability assumption is actually satisfied — a single, deliberately stationary regime."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Does it prove ShopSmart itself is capable?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"No — it proves the capability math and its integration with the SPC/gate engine work correctly on synthetic data. It says nothing about the real ShopSmart application's actual capability, which would need a much longer real production history."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q25. Why is the regression injected exactly at build 23?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether the experiment design is arbitrary or deliberate.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"Build 23 is the first build of Phase D ('Deliberate regression'), which runs builds 23–25 — placed after a full 7-build stable Phase C (16–22) specifically so the regression stands out clearly against a genuinely quiet baseline, not a noisy one."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Does the real data actually show the jump, or is it just a documented intention?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"It's in the real generated files: <code>defectScore</code> goes from 7 at build 22 to 46 at build 23 — a genuine step-change, and the regression-spike detector correctly fires exactly there."</div>
+    </div>
+
+    <h2 id="cat-gates">Quality Gates</h2>
+
+    <div class="qa-card">
+      <h4>Q26. How does the gate decide PASS/WARN/FAIL?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you know the exact derivation logic.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>See <a href="gates.html#pass-warn-fail">Quality Gates → PASS, WARN, FAIL</a> — any FAIL reason makes the whole verdict FAIL; otherwise any WARN reason makes it WARN; otherwise PASS.</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Name every check that can independently produce a FAIL."</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Any critical defect, more than 5 serious defects, defectScore ≥50, an SPC control-limit violation, WECO or Nelson Rule 1, a detected regression spike, or Cpu &lt;1.0."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q27. Why doesn't WARN block CI?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether the two-tier severity model is justified.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>See <a href="gates.html#why-warn-doesnt-block">Quality Gates → Why WARN Doesn't Block</a> — WARN is for signals worth a human noticing, not signals severe enough to stop the whole team; if it blocked, it would be identical to FAIL.</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Is a WARN visible anywhere, or does it just disappear?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"It's fully visible — the gate step still exits 0, but the reason still appears in the console output, the GitHub Actions annotations, the step summary, and the dashboard's reasons list."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q28. Why is policy separate from <code>ciAdapter.ts</code>?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Separation-of-concerns understanding.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>See <a href="gates.html#why-ciadapter-no-policy">Quality Gates → Why ciAdapter Has No Policy</a> — <code>ciAdapter.ts</code> imports only the <code>GateVerdict</code> type and contains zero threshold literals; it's pure formatting.</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"What's the practical benefit?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"A policy change never requires touching CI plumbing, and <code>ciAdapter.ts</code> can be unit-tested with hand-built verdict fixtures — <code>verify-ci.ts</code> does exactly that, without a real <code>telemetry/history/</code> or a real CI environment."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q29. What happens when some rules say WARN and others say FAIL on the same build?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Edge-case understanding of the derivation logic.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"FAIL wins outright — <code>deriveStatus()</code> checks for any FAIL reason first. The verdict's <code>reasons</code> array still lists every triggered reason, WARN and FAIL alike, so nothing is hidden even though the overall status collapses to the worst one."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Does the number of FAIL reasons matter, or is one enough?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"One is enough — <code>reasons.some(r =&gt; r.severity === 'FAIL')</code> is a boolean check, not a count. Ten FAIL reasons and one FAIL reason both just produce <code>status: 'FAIL'</code>."</div>
+    </div>
+
+    <h2 id="cat-cicd">CI/CD</h2>
+
+    <div class="qa-card">
+      <h4>Q30. Walk me through the workflow triggers.</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Factual recall of the actual YAML.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"Push to <code>main</code>, pull requests targeting <code>main</code>, and manual <code>workflow_dispatch</code> — plus a concurrency group that cancels an in-progress run on the same ref when a new one starts."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Why cancel in-progress runs?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"So evidence never accumulates from a stale run that's about to be superseded — if you push again quickly, you don't want two runs racing to upload conflicting artifacts."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q31. What happens when the gate step fails?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you understand <code>if: always()</code> vs. hiding failures.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>See <a href="cicd.html#gate-failure-behavior">CI/CD → What Happens When the Gate FAILS</a> — the job genuinely fails, but four downstream steps still run because they're marked <code>if: always()</code>, so evidence is still produced.</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Does the workflow use <code>continue-on-error</code> anywhere?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"No — I checked the full file specifically for that; it doesn't appear anywhere. The gate step is allowed to genuinely fail the job; <code>if: always()</code> on later steps is the only mechanism used."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q32. Why is CI permissions read-only?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Security-conscious design awareness.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"<code>permissions: contents: read</code> at the top of the workflow means it structurally cannot push, comment, or deploy — even if a future edit accidentally added a git command, it would fail without a credentials change most contributors wouldn't casually make."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Does anything in the workflow need write access at all?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"No — every output (dashboard, telemetry, gate verdict, reports) leaves only via <code>actions/upload-artifact@v4</code>, which doesn't require write access to repository contents."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q33. What is <code>if: always()</code> doing, in plain terms?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you can explain a GitHub Actions mechanism in beginner language.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>See <a href="cicd.html#always-explained">CI/CD → if: always() in Simple English</a> — it tells GitHub Actions "run this step regardless of whether an earlier step in this job already failed."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Doesn't that risk hiding the failure?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"No — the job's overall status is already FAILED by the gate step, and nothing downstream can undo that. The workflow's own comment says this explicitly: these steps exist to produce evidence for a blocked build, not to mask the block."</div>
+    </div>
+
+    <h2 id="cat-dashboard">Dashboard</h2>
+
+    <div class="qa-card">
+      <h4>Q34. What does the dashboard show?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Basic factual recall.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"Three panels: Production Process (real telemetry, gate verdict, I-chart), Experiment A (expanding vs. trailing window, side by side, with phase bands), and Experiment B (Cpu, capability badge, USL reference line on the chart)."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Is any of it interactive?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Yes — every chart has a 'View as table' toggle that reveals the underlying data as an HTML table, and it's keyboard-reachable, verified by the smoke test's Tab-navigation check."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q35. How do you know the dashboard isn't re-deriving numbers wrong?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether "presentation only" is enforced, not just claimed.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>See <a href="dashboard.html#no-duplicate-calc">Dashboard → Why It Doesn't Duplicate Calculations</a> — <code>verify-dashboard.ts</code> calls the dashboard's data builder and independently calls <code>computeSpcReport()</code>/<code>evaluateLatestBuild()</code> directly, and asserts the two are byte-identical.</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"What if that check ever failed?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"It would mean the dashboard's data layer had started computing something on its own instead of purely reading L4/L5/L6 output — exactly the regression this check exists to catch before it ships."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q36. Why test the dashboard's own accessibility?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Consistency between the project's subject matter and its own artifacts.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"It would be a bad look for a project about accessibility to ship an inaccessible dashboard. <code>tests-dashboard/dashboard.a11y.spec.ts</code> runs the exact same axe-core configuration used on ShopSmart against the dashboard itself, in both light and dark mode, and it's a required CI step, not something I ran once manually."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"What's the pass bar?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Zero violations, in each mode — <code>expect(results.violations).toEqual([])</code>, no tolerance for any count."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q37. Why Chromium only for the dashboard tests?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether the scope reduction is intentional.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"<code>playwright.dashboard.config.ts</code> only declares one project, Desktop Chrome. Cross-browser testing wasn't the goal for a static, dependency-free presentation page — the ShopSmart accessibility scans are the part that would benefit most from cross-browser coverage, and even those currently run Chromium only in CI."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Is that a limitation?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Yes, worth naming honestly — see <a href="limitations.html">Limitations</a>. Firefox/WebKit-specific rendering or accessibility-tree quirks wouldn't be caught."</div>
+    </div>
+
+    <h2 id="cat-methodology">Research Methodology</h2>
+
+    <div class="qa-card">
+      <h4>Q38. What is your research contribution?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you can state it precisely, the way a dissertation committee expects.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>Per ARCHITECTURE.md §9: four contributions — C1 the reference framework/architecture itself, C2 a defined method for turning raw axe output into an SPC-suitable measurement, C3 a declarative, statistically-grounded gate policy as an alternative to static-threshold gating, and C4 the empirical telemetry/experiment dataset itself as evaluation evidence.</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Is any of this a novel statistical algorithm?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"No, and I wouldn't claim it is. The positioning, stated directly in the architecture document, is the bridge between two established fields — accessibility engineering and SPC/software-quality engineering — not a novel algorithm in either one alone."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q39. What are your research questions?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether the experiments map back to stated questions.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"RQ1: can I-MR charts with a severity-weighted score meaningfully model accessibility-violation variation across builds? RQ2: does an SPC-informed gate reduce false positives/negatives relative to a static-threshold gate on the same history? RQ3: which distributional assumptions actually hold for this kind of telemetry, and does the weighted-score transform help?"</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Which of these are actually answered by what you built, versus still open?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Experiments A and B give real, verifiable evidence toward RQ1 — the methodology genuinely works and produces sensible, reproducible numbers. RQ2 and RQ3 are only partially addressable with 4 real builds; a fuller answer needs real production history I don't have yet. That's honestly still open." (See <a href="tough-questions.html">Tough Questions</a> for more on this.)</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q40. With only 4 real builds, how would you even evaluate RQ2 (false positive/negative reduction)?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you'll overclaim or answer honestly.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"Honestly, not fully — not yet. What I can show is that the methodology behaves correctly and sensibly on controlled synthetic data with known ground truth (Experiment A's known regression, known stable phases). A rigorous RQ2 answer needs a real, much longer production history to compare SPC-gated outcomes against a static-threshold baseline on the same real data — that's future work, not something this dissertation's timeline could produce."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"So is RQ2 currently unanswered?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Partially answered on synthetic data, genuinely open on real data. I'd rather say that plainly than imply otherwise."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q41. Is this reproducible by someone else?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Basic scientific reproducibility standards.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"Yes for the synthetic experiments — both generators use a fixed numeric seed, and <code>verify-experiment.ts</code>/<code>verify-stable-cohort.ts</code> explicitly check that the same seed produces byte-identical output. The real ShopSmart scans are also reproducible in the sense that anyone can clone the repo, run <code>npm run test:a11y</code>, and get a real new telemetry record from the same deterministic demo app."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"What isn't guaranteed to reproduce exactly?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"<code>timestamp</code>, <code>buildId</code>, and <code>commitSha</code> in a freshly-generated telemetry record will differ by definition (they're derived from the current time/git state), but the <em>violation content and defectScore</em> for a fixed ShopSmart build should reproduce, since the app itself is static and deterministic."</div>
+    </div>
+
+    <h2 id="cat-security">Security</h2>
+
+    <div class="qa-card">
+      <h4>Q42. Does this project handle any real user data or credentials?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you understand your own attack surface.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"No — ShopSmart's login and cart are simulated, with no real backend or persistence; the demo app is a static site with fixed demo data. There's no real payment, no real personal data, no real authentication against an external identity provider."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"What does <code>auth.setup.ts</code> actually authenticate against, then?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"ShopSmart's own simulated login flow — it saves Playwright's <code>storageState</code> so authenticated-page tests don't need to repeat a fake login, not a credential against any real identity system."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q43. What's the security posture of the CI workflow itself?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether CI hardening was considered.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"<code>permissions: contents: read</code> at the workflow level — the most restrictive setting that still allows checkout and artifact upload. No secrets are referenced anywhere in the workflow file, and nothing it does requires write access to the repository."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Does <code>verify-ci.ts</code> check for anything security-relevant?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"It checks for failure-hiding patterns like <code>|| true</code> or <code>continue-on-error: true</code> — not a security scan per se, but it does guard against the workflow silently swallowing a real failure, which is a related integrity concern."</div>
+    </div>
+
+    <h2 id="cat-reproducibility">Reproducibility</h2>
+
+    <div class="qa-card">
+      <h4>Q44. Can I regenerate the experiments and get the same result?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether reproducibility is a tested property, not an assumption.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"Yes — <code>npm run generate:experiment</code> and <code>npm run generate:stable-cohort</code> use fixed seeds (20260815 and 71430901), and both <code>verify-experiment.ts</code> and <code>verify-stable-cohort.ts</code> include an explicit reproducibility check: same seed produces byte-identical JSON twice; seed+1 produces a genuinely different sequence."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Why bother checking seed+1 produces something different?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"To rule out a broken generator that ignores its seed entirely and just always produces the same output regardless of input — that would make the 'reproducibility' claim vacuous."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q45. What happens if I run the pipeline on a different OS?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Environment-dependency awareness.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"CI runs on <code>ubuntu-latest</code>; I developed locally on Windows. The telemetry reporter actually has a specific Windows accommodation — it tries several hardcoded Git install paths as a fallback, because some Windows shells don't expose <code>git</code> on PATH for spawned child processes even when it's installed."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Could that fallback list ever be wrong on someone else's machine?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Yes, honestly — it's a small, named list of common Windows Git install locations, not an exhaustive PATH resolution. On a machine with Git installed somewhere unusual, <code>commitSha</code>/<code>branch</code> would fall back to <code>'unknown'</code> rather than crash, which is a safe failure mode but not a fully general one."</div>
+    </div>
+
+    <h2 id="cat-limitations">Limitations</h2>
+
+    <div class="qa-card">
+      <h4>Q46. What's the biggest limitation of this project?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you'll name a real limitation unprompted.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"Only 4 real production telemetry records exist. Every claim about the SPC methodology actually working is currently backed by synthetic, seeded data with known ground truth — which proves the machinery is correct, but doesn't yet prove it behaves usefully on the messy, unpredictable variation a real long-running project would produce."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"What would fix that?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Time — running the real CI pipeline against real ShopSmart changes for months, accumulating real telemetry, and only then evaluating RQ2/RQ3 against that history."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q47. Is 30 synthetic builds enough to validate SPC methodology?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Statistical rigor / sample-size awareness.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"It's enough to demonstrate the mechanics work correctly and produce sensible, checkable numbers — which is what Experiments A and B actually set out to do. It is not enough to make a strong statistical claim about long-run false-positive/false-negative rates; that needs a much larger sample, ideally real data. I'd call this a methodology validation, not a statistical power study."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Why 30 specifically, then?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Large enough to give the 15-build trailing window room to actually differ from expanding history for half the cohort, and to fit five distinct 3-to-8-build phases without any phase being too short to establish its own character."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q48. What would you do differently with more time?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Self-awareness about scope trade-offs.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"Run the real pipeline against a real, evolving codebase for months to build genuine production history, then empirically tune the CUSUM constants and the defect-score weights against that real data instead of textbook defaults, and do a direct comparative study against a static-threshold baseline on the same real history to properly answer RQ2."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"What's the single highest-value next step?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Accumulating real telemetry — everything else (tuning, comparative studies) is blocked on having enough real data to tune or compare against in the first place."</div>
+    </div>
+
+    <h2 id="cat-difficult">Difficult</h2>
+
+    <div class="qa-card">
+      <h4>Q49. If WCAG rules change, does your framework need to change?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether the design anticipated an external dependency changing.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"Not structurally — the WCAG tag set is one config array in <code>src/config/axe.config.ts</code>, and axe-core itself (a third-party dependency) is what actually tracks rule changes. Updating the tag list or bumping the <code>@axe-core/playwright</code> version wouldn't touch the SPC engine, the gate, or the dashboard at all — they operate on the resulting <code>defectScore</code>, not on individual rule identities."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Would old telemetry records become incomparable to new ones after a rule-set change?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Potentially, yes — that's a real, honest edge case. If new rules start firing that never could before, <code>defectScore</code> could jump for reasons unrelated to any real regression, and the SPC engine has no way to know the measurement definition itself changed. That's a genuine limitation worth naming, not something the framework currently detects or compensates for."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q50. Isn't 4 real builds too small to trust any of this?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Whether you'll defend an indefensible claim or concede honestly.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"You're right to push on that, and I won't claim otherwise — 4 builds cannot validate a statistical methodology on their own. What they validate is that the pipeline runs correctly end-to-end on real data: real axe-core output really does become a real telemetry record, really does flow through the real SPC engine and gate. The statistical validation itself is carried by the synthetic experiments, which is a real limitation of scope, not a hidden one."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"So what's actually proven versus assumed?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Proven: the pipeline works end-to-end, the math is implemented correctly (per the verify scripts), and the methodology behaves sensibly on controlled data. Assumed, not yet proven: that this specific methodology, with these specific weights and thresholds, will behave usefully on a real, messy, multi-month accessibility history."</div>
+    </div>
+
+    <div class="qa-card">
+      <h4>Q51. What's stopping someone from gaming the defect score?</h4>
+      <div class="qa-field"><span class="qa-field-label">What the reviewer is testing</span>Adversarial/robustness thinking.</div>
+      <div class="qa-field"><span class="qa-field-label">Answer I should give</span>"Honestly, not much at the framework level — a developer could disable a rule in <code>axe.config.ts</code>, or narrow <code>sites.config.ts</code>'s route list, and the score would drop without any real accessibility improvement. That's true of essentially any automated quality gate: it measures what it's configured to measure, and changing the configuration changes the measurement."</div>
+      <div class="qa-field"><span class="qa-field-label">Technical follow-up</span>"Is there any safeguard against that at all?"</div>
+      <div class="qa-field"><span class="qa-field-label">Answer to follow-up</span>"Only an organizational one, not a technical one: config changes go through the same PR review and version control as any other code change, so a route or rule being quietly removed would show up in a diff. There's no automated detection of 'the measurement definition itself just changed' — that's a real gap, not a solved problem."</div>
+    </div>
+
+    <div class="footer-note">Every answer above is grounded in the exact files and numbers cited across this guide's other pages — follow the linked sections for full detail.</div>
+  </main>
+</div>
+<script src="script.js"></script>
+</body>
+</html>

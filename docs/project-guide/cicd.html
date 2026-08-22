@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CI/CD Pipeline (L1) — Project Guide</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">Accessibility Telemetry Framework</div>
+    <div class="brand-sub">Project Guide &amp; Viva Preparation</div>
+    <input id="search-box" type="search" placeholder="Search the guide…" autocomplete="off" />
+    <div id="search-results"></div>
+    <nav>
+      <ul><li><a href="index.html">Home</a></li></ul>
+      <div class="group-label">Understand the System</div>
+      <ul>
+        <li><a href="architecture.html">Architecture (L1–L7)</a></li>
+        <li><a href="telemetry.html">Telemetry</a></li>
+        <li><a href="spc.html">SPC From Zero</a></li>
+        <li><a href="experiments.html">Experiments A &amp; B</a></li>
+        <li><a href="gates.html">Quality Gates</a></li>
+        <li><a href="cicd.html">CI/CD Pipeline</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+      <div class="group-label">Use It</div>
+      <ul>
+        <li><a href="testing.html">Commands</a></li>
+        <li><a href="demo.html">Reviewer Demo Script</a></li>
+      </ul>
+      <div class="group-label">Prepare for Viva</div>
+      <ul>
+        <li><a href="cheatsheet.html">Cheat Sheet</a></li>
+        <li><a href="questions.html">Reviewer Q&amp;A (40+)</a></li>
+        <li><a href="tough-questions.html">Tough Questions</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="glossary.html">Glossary</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="page-kicker">Layer 1</div>
+    <h1>CI/CD: The GitHub Actions Workflow</h1>
+    <p class="lede">One workflow file, one job, eighteen steps. It doesn't compute anything itself — it sequences every other layer and turns the gate's verdict into a real merge-blocking status check.</p>
+
+    <h2 id="workflow-triggers">Triggers</h2>
+    <p>File: <code>.github/workflows/accessibility-ci.yml</code>. Workflow name: <strong>"Accessibility Quality Gate"</strong>.</p>
+    <pre><code>on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: accessibility-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read</code></pre>
+    <ul>
+      <li><strong>push</strong> to <code>main</code> only.</li>
+      <li><strong>pull_request</strong> targeting <code>main</code> only.</li>
+      <li><strong>workflow_dispatch</strong> — manual trigger, for the reviewer demo (see <a href="demo.html">Reviewer Demo</a>).</li>
+      <li><strong>Concurrency</strong>: a new push cancels any still-running run on the same ref, so evidence never accumulates from a stale run.</li>
+      <li><strong>Permissions</strong>: read-only. The workflow's own comment: <em>"this workflow never pushes, comments, or deploys; it only reads the checked-out repo and uploads artifacts."</em></li>
+    </ul>
+
+    <h2 id="pipeline-steps">The Pipeline, Step by Step</h2>
+    <p>One job, <code>accessibility-quality-gate</code> ("Scan, analyze, and gate"), <code>ubuntu-latest</code>, 20-minute timeout.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Step</th><th>Command / action</th><th><code>if:</code></th></tr></thead>
+        <tbody>
+        <tr><td>1</td><td>Checkout</td><td><code>actions/checkout@v4</code></td><td>—</td></tr>
+        <tr><td>2</td><td>Set up Node.js</td><td><code>actions/setup-node@v4</code>, node 24, npm cache</td><td>—</td></tr>
+        <tr><td>3</td><td>Install dependencies</td><td><code>npm ci</code></td><td>—</td></tr>
+        <tr><td>4</td><td>Install Playwright (Chromium)</td><td><code>npx playwright install --with-deps chromium</code></td><td>—</td></tr>
+        <tr><td>5</td><td>Compile TypeScript</td><td><code>npx tsc -p tsconfig.json</code></td><td>—</td></tr>
+        <tr><td>6</td><td>Verify SPC engine</td><td><code>npm run verify:spc</code></td><td>—</td></tr>
+        <tr><td>7</td><td>Verify Quality Gate engine</td><td><code>npm run verify:gates</code></td><td>—</td></tr>
+        <tr><td>8</td><td>Verify Experiment A dataset</td><td><code>npm run verify:experiment</code></td><td>—</td></tr>
+        <tr><td>9</td><td>Verify Experiment B dataset</td><td><code>npm run verify:stable-cohort</code></td><td>—</td></tr>
+        <tr><td>10</td><td>Verify CI adapter/workflow</td><td><code>npm run verify:ci</code></td><td>—</td></tr>
+        <tr><td>11</td><td>Verify dashboard data layer</td><td><code>npm run verify:dashboard</code></td><td>—</td></tr>
+        <tr><td>12</td><td>Run accessibility scan, collect telemetry</td><td><code>npm run test:a11y</code></td><td>—</td></tr>
+        <tr><td>13</td><td><strong>Evaluate Quality Gate</strong> (<code>id: gate</code>)</td><td><code>npm run gate:ci</code></td><td><em>the one step allowed to fail the job</em></td></tr>
+        <tr><td>14</td><td>Generate dashboard</td><td><code>npm run generate:dashboard</code></td><td><code>always()</code></td></tr>
+        <tr><td>15</td><td>Dashboard smoke test</td><td><code>npm run test:dashboard</code></td><td><code>always()</code></td></tr>
+        <tr><td>16</td><td>Dashboard accessibility check</td><td><code>npm run test:dashboard:a11y</code></td><td><code>always()</code></td></tr>
+        <tr><td>17</td><td>Upload quality evidence</td><td><code>actions/upload-artifact@v4</code></td><td><code>always()</code></td></tr>
+        <tr><td>18</td><td>Upload Playwright traces</td><td><code>actions/upload-artifact@v4</code></td><td><code>failure()</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Step 11 (verify dashboard) is deliberately placed <em>before</em> step 12 (the scan), because <code>verify-dashboard.ts</code> asserts the 4 originally-committed production telemetry records are still exactly present and byte-identical — a check that would be invalidated if the scan had already appended a new record first.</p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 980 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CI/CD pipeline overview">
+        <defs>
+          <marker id="arrow4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--text-muted)"></path>
+          </marker>
+        </defs>
+        <style>
+          .cb rect { fill: var(--bg-panel); stroke: var(--border); stroke-width: 1.4; rx: 7; }
+          .cb text { font-family: var(--sans); font-size: 10.5px; fill: var(--text); }
+          .cb .t { font-weight: 700; font-size: 11px; }
+          .cedge { stroke: var(--text-muted); stroke-width: 1.3; fill: none; marker-end: url(#arrow4); }
+          .always rect { stroke: var(--warn); stroke-width: 2; }
+        </style>
+        <g class="cb"><rect x="10" y="20" width="110" height="46"></rect><text x="65" y="40" text-anchor="middle" class="t">Setup</text><text x="65" y="54" text-anchor="middle">checkout, node, npm ci</text></g>
+        <path class="cedge" d="M120,43 H150"></path>
+        <g class="cb"><rect x="150" y="20" width="120" height="46"></rect><text x="210" y="40" text-anchor="middle" class="t">Compile + Verify</text><text x="210" y="54" text-anchor="middle">tsc, 6 verify:* scripts</text></g>
+        <path class="cedge" d="M270,43 H300"></path>
+        <g class="cb"><rect x="300" y="20" width="130" height="46"></rect><text x="365" y="40" text-anchor="middle" class="t">Accessibility Scan</text><text x="365" y="54" text-anchor="middle">test:a11y → telemetry</text></g>
+        <path class="cedge" d="M430,43 H460"></path>
+        <g class="cb"><rect x="460" y="20" width="130" height="46"></rect><text x="525" y="40" text-anchor="middle" class="t">Evaluate Gate</text><text x="525" y="54" text-anchor="middle">gate:ci — can fail the job</text></g>
+        <path class="cedge" d="M590,43 H620"></path>
+
+        <g class="cb always"><rect x="620" y="20" width="350" height="46"></rect>
+          <text x="795" y="38" text-anchor="middle" class="t">Dashboard + Tests + Upload (if: always())</text>
+          <text x="795" y="54" text-anchor="middle">runs even if the gate step failed</text></g>
+
+        <path class="cedge" d="M525,66 V150"></path>
+        <text x="525" y="170" text-anchor="middle" class="t" font-size="11">Job status = the gate step's own result</text>
+        <text x="525" y="188" text-anchor="middle" font-size="10" fill="var(--text-muted)">the always() steps below never change that outcome</text>
+      </svg>
+      <div class="diagram-caption">The gate step's pass/fail genuinely determines the job's overall status — the downstream <code>always()</code> steps produce evidence, they do not rescue a failed job.</div>
+    </div>
+
+    <h2 id="gate-failure-behavior">What Happens When the Gate FAILS</h2>
+    <div class="box box-beginner">
+      <div class="box-label">Beginner explanation</div>
+      <p>If the gate says FAIL, the CI job genuinely fails — that's what blocks the merge. But the pipeline doesn't just stop and leave you with nothing to look at. It keeps going long enough to build the dashboard and package up all the evidence, so whoever is looking at the failed build can immediately see <em>why</em> it failed, instead of just seeing a red X with no explanation.</p>
+    </div>
+    <h3 id="always-explained">"<code>if: always()</code>" in Simple English</h3>
+    <div class="box box-technical">
+      <div class="box-label">Technical explanation</div>
+      <p>By default, a GitHub Actions job stops running further steps once one step fails. <code>if: always()</code> on a step overrides that — it tells GitHub Actions "run this step regardless of whether an earlier step in this job failed." The workflow's own comment is explicit about why this is safe and not a way of hiding the failure:</p>
+      <pre><code># ---------------------------------------------------------------
+# Everything from here on runs with `if: always()`. This is a
+# deliberate, explained exception to "don't use continue-on-error /
+# don't hide failures": the job's overall status is already FAILED
+# by the gate step above if the gate returned FAIL, and nothing
+# below can undo that. These steps exist so a blocked build still
+# produces the dashboard/telemetry evidence an engineer needs to
+# see *why* -- not to mask the failure.
+# ---------------------------------------------------------------</code></pre>
+      <p>Note also what the workflow deliberately does <strong>not</strong> use: <code>continue-on-error</code> does not appear anywhere in the file. The gate step is allowed to genuinely fail the job; <code>if: always()</code> on later steps is the only mechanism used to still produce evidence.</p>
+    </div>
+
+    <h2 id="artifact-only-telemetry">Artifact-Only Evidence, Never Committed Back</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 900 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Evidence flow: CI runner to workflow artifact, never to a repository commit">
+        <defs>
+          <marker id="arrow5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--text-muted)"></path>
+          </marker>
+        </defs>
+        <style>
+          .fb rect { fill: var(--bg-panel); stroke: var(--border); stroke-width: 1.4; rx: 7; }
+          .fb text { font-family: var(--sans); font-size: 11px; fill: var(--text); }
+          .fb .t { font-weight: 700; }
+          .fedge { stroke: var(--text-muted); stroke-width: 1.4; fill: none; marker-end: url(#arrow5); }
+          .blocked { stroke: var(--fail); stroke-width: 1.6; stroke-dasharray: 4,3; fill:none; }
+        </style>
+        <g class="fb"><rect x="20" y="55" width="180" height="55"></rect><text x="110" y="78" text-anchor="middle" class="t">CI Runner (ephemeral)</text><text x="110" y="94" text-anchor="middle">dashboard/, telemetry/*, reports/</text></g>
+        <path class="fedge" d="M200,82 H240"></path>
+        <g class="fb"><rect x="240" y="55" width="220" height="55"></rect><text x="350" y="78" text-anchor="middle" class="t">actions/upload-artifact@v4</text><text x="350" y="94" text-anchor="middle">quality-evidence-&lt;run_id&gt;</text></g>
+        <path class="fedge" d="M460,82 H500"></path>
+        <g class="fb"><rect x="500" y="55" width="220" height="55"></rect><text x="610" y="78" text-anchor="middle" class="t">Downloadable Artifact</text><text x="610" y="94" text-anchor="middle">30-day retention</text></g>
+
+        <path class="blocked" d="M110,110 V150 H610 V110"></path>
+        <text x="360" y="145" text-anchor="middle" font-size="10.5" fill="var(--fail)">never: no git commit / git push step exists in the workflow</text>
+      </svg>
+      <div class="diagram-caption"><code>permissions: contents: read</code> at the top of the workflow makes a write-back structurally impossible even if a step tried.</div>
+    </div>
+    <pre><code>- name: Upload quality evidence (dashboard, telemetry, gate verdict, reports)
+  if: always()
+  uses: actions/upload-artifact@v4
+  with:
+    name: quality-evidence-${{ github.run_id }}
+    path: |
+      dashboard/
+      telemetry/aggregated/
+      telemetry/history/
+      reports/
+    if-no-files-found: warn
+    retention-days: 30</code></pre>
+    <p>See <a href="telemetry.html#artifact-only">Telemetry → Why Is CI-Generated Telemetry Artifact-Only?</a> for the full reasoning.</p>
+
+    <div class="footer-note">Sources: <code>.github/workflows/accessibility-ci.yml</code> (full file read directly), <code>scripts/run-quality-gate.ts</code>, <code>package.json</code>.</div>
+  </main>
+</div>
+<script src="script.js"></script>
+</body>
+</html>

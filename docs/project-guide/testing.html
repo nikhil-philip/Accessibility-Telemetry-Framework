@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Commands — Project Guide</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">Accessibility Telemetry Framework</div>
+    <div class="brand-sub">Project Guide &amp; Viva Preparation</div>
+    <input id="search-box" type="search" placeholder="Search the guide…" autocomplete="off" />
+    <div id="search-results"></div>
+    <nav>
+      <ul><li><a href="index.html">Home</a></li></ul>
+      <div class="group-label">Understand the System</div>
+      <ul>
+        <li><a href="architecture.html">Architecture (L1–L7)</a></li>
+        <li><a href="telemetry.html">Telemetry</a></li>
+        <li><a href="spc.html">SPC From Zero</a></li>
+        <li><a href="experiments.html">Experiments A &amp; B</a></li>
+        <li><a href="gates.html">Quality Gates</a></li>
+        <li><a href="cicd.html">CI/CD Pipeline</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+      <div class="group-label">Use It</div>
+      <ul>
+        <li><a href="testing.html">Commands</a></li>
+        <li><a href="demo.html">Reviewer Demo Script</a></li>
+      </ul>
+      <div class="group-label">Prepare for Viva</div>
+      <ul>
+        <li><a href="cheatsheet.html">Cheat Sheet</a></li>
+        <li><a href="questions.html">Reviewer Q&amp;A (40+)</a></li>
+        <li><a href="tough-questions.html">Tough Questions</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="glossary.html">Glossary</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="page-kicker">Reference</div>
+    <h1>Commands</h1>
+    <p class="lede">Every command below is copied verbatim from <code>package.json</code>'s <code>"scripts"</code> block — nothing here is invented. Run them from inside <code>accessibility-telemetry-framework/</code>.</p>
+
+    <div class="box box-technical">
+      <div class="box-label">Read-only vs. file-generating</div>
+      <p><span class="badge" style="background:var(--pass)">READ-ONLY</span> commands never write to <code>telemetry/</code> or <code>dashboard/</code> — safe to run any time. <span class="badge" style="background:var(--warn)">GENERATES FILES</span> commands write or regenerate data on disk — the <code>generate:*</code> and <code>verify:experiment</code>/<code>verify:stable-cohort</code> commands regenerate the seeded experiment cohorts (deterministically, from a fixed seed, so re-running produces byte-identical output), and <code>test:a11y</code> appends a brand-new record to <code>telemetry/history/</code>.</p>
+    </div>
+
+    <h2 id="command-table">Command Table</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Command</th><th>Type</th><th>What it does</th><th>Why it matters</th><th>Expected result</th><th>When to run it</th></tr></thead>
+        <tbody>
+        <tr>
+          <td><code class="cmd">npm run verify</code></td>
+          <td><span class="badge" style="background:var(--warn)">generates files</span></td>
+          <td>Runs all six regression-guard scripts in sequence: <code>verify:spc</code>, <code>verify:gates</code>, <code>verify:experiment</code>, <code>verify:stable-cohort</code>, <code>verify:dashboard</code>, <code>verify:ci</code>.</td>
+          <td>The single command that proves every layer still behaves exactly as previously validated, all at once.</td>
+          <td>Every sub-script prints its own "<code>=== Results: N passed, 0 failed ===</code>" line; the combined command exits 0 only if all six do.</td>
+          <td>Before a demo, and any time you want a single "is everything still OK" answer.</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">npm run verify:spc</code></td>
+          <td><span class="badge" style="background:var(--pass)">read-only</span></td>
+          <td>Verifies the SPC engine (<code>src/spc/</code>) in isolation, including the real <code>telemetry/history/</code> data.</td>
+          <td>Confirms the control chart math and every rule/detector still fire correctly on known synthetic and real inputs.</td>
+          <td>30 <code>check()</code> assertions in the source; a clean run ends with "<code>=== Results: 30 passed, 0 failed ===</code>."</td>
+          <td>After touching anything under <code>src/spc/</code>.</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">npm run verify:gates</code></td>
+          <td><span class="badge" style="background:var(--pass)">read-only</span></td>
+          <td>Verifies the Quality Gate engine (<code>src/gates/</code>) against hand-built and end-to-end fixtures.</td>
+          <td>Confirms every threshold in <code>gatePolicies.ts</code> produces the correct PASS/WARN/FAIL.</td>
+          <td>56 <code>check()</code> assertions in the source; a clean run ends with "<code>=== Results: 56 passed, 0 failed ===</code>."</td>
+          <td>After touching anything under <code>src/gates/</code>.</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">npm run verify:experiment</code></td>
+          <td><span class="badge" style="background:var(--warn)">generates files</span></td>
+          <td>Regenerates and verifies Experiment A's 30-build cohort — reproducibility, schema, phase boundaries, engine/gate compatibility, and that Cpk is correctly excluded.</td>
+          <td>Confirms the baseline-methodology dataset used throughout the <a href="experiments.html">Experiments</a> page is exactly reproducible.</td>
+          <td>52 <code>check()</code> assertions; a clean run ends with "<code>=== Results: 52 passed, 0 failed ===</code>."</td>
+          <td>After touching <code>src/telemetry/experimentGenerator.ts</code> or <code>src/spc/experimentAnalysis.ts</code>.</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">npm run verify:stable-cohort</code></td>
+          <td><span class="badge" style="background:var(--warn)">generates files</span></td>
+          <td>Regenerates and verifies Experiment B's 30-build stable cohort, including a hand-computed cross-check of the Cpu formula.</td>
+          <td>Confirms the capability-analysis dataset is exactly reproducible and its stability assumption actually holds.</td>
+          <td>30 <code>check()</code> assertions; a clean run ends with "<code>=== Results: 30 passed, 0 failed ===</code>."</td>
+          <td>After touching <code>src/telemetry/stableProcessGenerator.ts</code> or <code>src/spc/capabilityAnalysis.ts</code>.</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">npm run verify:dashboard</code></td>
+          <td><span class="badge" style="background:var(--pass)">read-only</span> <span class="small muted">(inspects <code>dashboard/</code> only if it already exists)</span></td>
+          <td>Confirms <code>buildDashboardData()</code> never mutates source telemetry, that every number matches calling L4/L5/L6 directly, and that the known validated results (Experiment A pass/warn/fail counts, Cpu≈2.9811) still hold.</td>
+          <td>This is the check that proves L7 is presentation-only, not just documented as such.</td>
+          <td>32 <code>check()</code> assertions; a clean run ends with "<code>=== Results: 32 passed, 0 failed ===</code>."</td>
+          <td>After touching anything under <code>src/dashboard/</code>.</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">npm run verify:ci</code></td>
+          <td><span class="badge" style="background:var(--pass)">read-only</span></td>
+          <td>Verifies <code>ciAdapter.ts</code>'s exit-code mapping with fixed fixtures, and statically validates <code>accessibility-ci.yml</code> — every <code>npm run</code> it invokes exists, every script file it resolves to exists, and no failure-hiding pattern (<code>|| true</code>, <code>continue-on-error: true</code>) is present.</td>
+          <td>Catches a broken or drifted CI workflow before it ever runs on GitHub.</td>
+          <td>28 <code>check()</code> assertions; a clean run ends with "<code>=== Results: 28 passed, 0 failed ===</code>."</td>
+          <td>After touching <code>src/gates/ciAdapter.ts</code> or the workflow YAML.</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">npm run generate:experiment</code></td>
+          <td><span class="badge" style="background:var(--warn)">generates files</span></td>
+          <td>Wipes and regenerates <code>telemetry/experiments/spc-validation-cohort/</code> (30 files), and prints a build-by-build comparison table of both analysis methods.</td>
+          <td>Produces the raw data <a href="experiments.html">Experiment A</a> is built from.</td>
+          <td>Console table plus 30 new/overwritten JSON files.</td>
+          <td>Only if you deliberately want to regenerate Experiment A's data (it's already committed and reproducible from the fixed seed).</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">npm run generate:stable-cohort</code></td>
+          <td><span class="badge" style="background:var(--warn)">generates files</span></td>
+          <td>Wipes and regenerates <code>telemetry/experiments/stable-capability-cohort/</code> (30 files) and prints the Cpu/capability result.</td>
+          <td>Produces the raw data <a href="experiments.html">Experiment B</a> is built from.</td>
+          <td>Console output plus 30 new/overwritten JSON files.</td>
+          <td>Only if you deliberately want to regenerate Experiment B's data.</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">npm run generate:dashboard</code></td>
+          <td><span class="badge" style="background:var(--warn)">generates files</span></td>
+          <td>Builds <code>dashboard/</code> from scratch: <code>index.html</code>, <code>assets/</code>, and <code>data.json</code>, from the current telemetry + experiment data.</td>
+          <td>This is what actually produces the dashboard you can open in a browser.</td>
+          <td>A new <code>dashboard/</code> folder on disk.</td>
+          <td>Any time you want to look at the current dashboard, or before <code>npm run test:dashboard</code>.</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">npm run serve:dashboard</code></td>
+          <td><span class="badge" style="background:var(--warn)">generates files</span></td>
+          <td>Runs <code>generate:dashboard</code>, then starts a plain static file server on port 4310 (override with <code>DASHBOARD_PORT</code>).</td>
+          <td>The easiest way to actually view the dashboard in a real browser.</td>
+          <td>Console log "serving on http://localhost:4310"; leave it running and open that URL.</td>
+          <td>Whenever you want to show the dashboard live, e.g. in a reviewer demo.</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">npm run gate:ci</code></td>
+          <td><span class="badge" style="background:var(--warn)">generates files</span></td>
+          <td>Evaluates the quality gate against whatever is currently in <code>telemetry/history/</code>, writes <code>telemetry/aggregated/gate-verdict.json</code>, and exits 0 (PASS/WARN) or 1 (FAIL).</td>
+          <td>This is the literal command CI runs to decide merge/no-merge.</td>
+          <td>Console output showing status, reasons, and "Quality Gate: &lt;STATUS&gt; — CI continues." or "… — blocking the build."</td>
+          <td>Any time you want to know, right now, what verdict the current telemetry history would produce.</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">npm run test:a11y</code></td>
+          <td><span class="badge" style="background:var(--warn)">generates files</span></td>
+          <td>Runs Playwright against <code>tests/accessibility/*.spec.ts</code> — scans all 8 ShopSmart routes with axe-core and writes a new telemetry record.</td>
+          <td>The actual accessibility scan; this is what feeds everything downstream.</td>
+          <td>Playwright's own test report (8+ tests passing/failing per the axe assertions), plus one new file in <code>telemetry/history/</code>.</td>
+          <td>To generate fresh, real telemetry, or before <code>npm run gate:ci</code> if you want a brand-new build to gate on.</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">npm run test:functional</code></td>
+          <td><span class="badge" style="background:var(--pass)">read-only</span></td>
+          <td>Runs the one functional (non-accessibility) test, <code>tests/functional/checkout-flow.spec.ts</code>.</td>
+          <td>Shows the framework isn't accessibility-only — it's a general Playwright QA base.</td>
+          <td>Playwright report, one test passing.</td>
+          <td>To demonstrate the checkout flow works end-to-end.</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">npm run test:dashboard</code></td>
+          <td><span class="badge" style="background:var(--pass)">read-only</span> <span class="small muted">(requires <code>dashboard/</code> to already exist)</span></td>
+          <td>Runs the browser smoke test against a live-served dashboard.</td>
+          <td>Proves the dashboard actually renders and is keyboard-navigable in a real browser, not just that the generator didn't crash.</td>
+          <td>1 test passing, checking headings, badges, the rendered SVG chart, and keyboard reachability.</td>
+          <td>After <code>generate:dashboard</code>, to confirm the generated site actually works.</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">npm run test:dashboard:a11y</code></td>
+          <td><span class="badge" style="background:var(--pass)">read-only</span> <span class="small muted">(requires <code>dashboard/</code> to already exist)</span></td>
+          <td>Runs axe-core against the dashboard itself, in both light and dark mode.</td>
+          <td>Proves the dashboard doesn't violate the same accessibility rules it's built to monitor.</td>
+          <td>2 tests passing (light + dark), each asserting zero axe violations.</td>
+          <td>After <code>generate:dashboard</code>.</td>
+        </tr>
+        <tr>
+          <td><code class="cmd">npm run report</code></td>
+          <td><span class="badge" style="background:var(--pass)">read-only</span></td>
+          <td>Opens Playwright's HTML report from <code>reports/html</code> in a browser.</td>
+          <td>The easiest way to inspect individual test failures/screenshots after a run.</td>
+          <td>A local browser tab with the interactive Playwright report.</td>
+          <td>Right after any <code>test*</code> command, to inspect results in detail.</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="box box-technical">
+      <div class="box-label">Note on expected outputs above</div>
+      <p>The "expected result" column for the <code>verify:*</code> scripts (e.g. "30 passed, 0 failed") is derived by counting the exact number of <code>check()</code> calls present in each script's source, and quoting each script's own final-line format (<code>console.log(\`\n=== Results: ${passCount} passed, ${failCount} failed ===\`)</code>). This documentation session did not execute the scripts, in keeping with a documentation-only, implementation-frozen scope — the counts are read directly from the code, not from a captured console log.</p>
+    </div>
+
+    <div class="footer-note">Source: <code>package.json</code>'s <code>"scripts"</code> block, read directly. Every command above exists verbatim.</div>
+  </main>
+</div>
+<script src="script.js"></script>
+</body>
+</html>

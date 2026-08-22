@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reviewer Demo Script — Project Guide</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">Accessibility Telemetry Framework</div>
+    <div class="brand-sub">Project Guide &amp; Viva Preparation</div>
+    <input id="search-box" type="search" placeholder="Search the guide…" autocomplete="off" />
+    <div id="search-results"></div>
+    <nav>
+      <ul><li><a href="index.html">Home</a></li></ul>
+      <div class="group-label">Understand the System</div>
+      <ul>
+        <li><a href="architecture.html">Architecture (L1–L7)</a></li>
+        <li><a href="telemetry.html">Telemetry</a></li>
+        <li><a href="spc.html">SPC From Zero</a></li>
+        <li><a href="experiments.html">Experiments A &amp; B</a></li>
+        <li><a href="gates.html">Quality Gates</a></li>
+        <li><a href="cicd.html">CI/CD Pipeline</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+      <div class="group-label">Use It</div>
+      <ul>
+        <li><a href="testing.html">Commands</a></li>
+        <li><a href="demo.html">Reviewer Demo Script</a></li>
+      </ul>
+      <div class="group-label">Prepare for Viva</div>
+      <ul>
+        <li><a href="cheatsheet.html">Cheat Sheet</a></li>
+        <li><a href="questions.html">Reviewer Q&amp;A (40+)</a></li>
+        <li><a href="tough-questions.html">Tough Questions</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="glossary.html">Glossary</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="page-kicker">Walkthrough</div>
+    <h1>Reviewer Demonstration Script</h1>
+    <p class="lede">A complete, ordered script — exact commands, what to expect, what to point at, what to say. Written for someone nervous, with almost no coding background, standing in front of a reviewer.</p>
+
+    <div class="box box-say">
+      <div class="box-label">Before you start</div>
+      <p>Do the file-generating steps (2 and 8 below) once, in private, <em>before</em> the reviewer arrives. Nobody needs to watch <code>npm ci</code> finish or a browser install progress bar — you want the live parts of the demo to be fast and predictable.</p>
+    </div>
+
+    <h2 id="before-review">Before the Review</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Step</th><th>Command</th></tr></thead>
+        <tbody>
+        <tr><td>1. Install dependencies (only needed once, or after a fresh clone)</td><td><pre><code class="cmd">npm ci</code></pre><pre><code class="cmd">npx playwright install --with-deps chromium</code></pre></td></tr>
+        <tr><td>2. Confirm everything still verifies</td><td><pre><code class="cmd">npm run verify</code></pre></td></tr>
+        <tr><td>3. Generate a fresh dashboard so it's ready to show</td><td><pre><code class="cmd">npm run generate:dashboard</code></pre></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>All three should complete without error. If <code>npm run verify</code> shows any "failed" count above 0, stop and fix that before the review — it means something in the repository's current state doesn't match its own regression guards.</p>
+
+    <h2 id="starting-review">Starting the Review</h2>
+    <div class="box box-say">
+      <div class="box-label">What I should say</div>
+      <p>"I built an automated system that tests a demo shopping website for accessibility problems on every code change, and instead of just pass/fail on one run, it treats the accessibility defect count as a manufacturing-style measurement and applies Statistical Process Control to it — the same discipline used to monitor variation on a factory floor — so it can tell ordinary noise apart from a genuine regression. A quality gate acts on that distinction, and a dashboard shows the evidence."</p>
+    </div>
+    <p>(This is the 30-second answer from the <a href="index.html#thirty-second">Home page</a> — reread it once beforehand so it comes out naturally.)</p>
+
+    <h2 id="showing-project">Showing the Project</h2>
+    <p>Open <code>docs/architecture/ARCHITECTURE.md</code> and this guide's <a href="architecture.html">Architecture page</a> side by side, or just walk through the <a href="architecture.html#big-picture">layer diagram</a>. Point out: "seven layers, each one hands a JSON file to the next — that's what lets me test the statistics without needing a browser running."</p>
+
+    <h2 id="running-a11y">Running Accessibility Tests</h2>
+    <pre><code class="cmd">npm run test:a11y</code></pre>
+    <p><strong>What it does:</strong> Playwright opens Chromium, visits all 8 ShopSmart pages, runs axe-core on each, and writes one new telemetry record.<br>
+    <strong>Expected output:</strong> Playwright's test report — 8 tests, each confirming a scan completed (these tests check that a result came back, not that there are zero violations, since the point is to measure, not just pass/fail).<br>
+    <strong>What to point out:</strong> a new file appears in <code>telemetry/history/</code>.<br>
+    <strong>What to say:</strong> "Each of these tests scans one page and hands the raw result to a custom Playwright reporter, which turns the whole run into one telemetry record."</p>
+
+    <h2 id="showing-telemetry">Showing Telemetry</h2>
+    <p>Open the newest file in <code>telemetry/history/</code> in a text editor (no command needed — this is just reading a file).</p>
+    <div class="box box-say">
+      <div class="box-label">What I should say</div>
+      <p>"This is one build's permanent record. The important number is <code>defectScore</code> — it's a severity-weighted sum: critical defects count 10 points, serious 5, moderate 2, minor 1. That one number is what the statistics engine actually tracks over time."</p>
+    </div>
+
+    <h2 id="showing-spc">Showing SPC</h2>
+    <pre><code class="cmd">npm run verify:spc</code></pre>
+    <p><strong>What it does:</strong> read-only — re-derives the control chart and every rule against known fixtures and the real telemetry history, and checks the results match what's already validated.<br>
+    <strong>Expected output:</strong> ends with <code>=== Results: 30 passed, 0 failed ===</code>.<br>
+    <strong>What to say:</strong> "This proves the control-chart math and every detection rule still behave exactly as I validated them — center line, sigma, control limits, the Western Electric and Nelson rules, trend, regression-spike, and CUSUM drift detection." Then walk through the concepts on the <a href="spc.html">SPC From Zero</a> page as needed.</p>
+
+    <h2 id="showing-gate">Showing the Quality Gate</h2>
+    <pre><code class="cmd">npm run gate:ci</code></pre>
+    <p><strong>What it does:</strong> evaluates the current telemetry history through the SPC engine and the gate policy, prints the verdict, writes <code>telemetry/aggregated/gate-verdict.json</code>, and exits 0 or 1.<br>
+    <strong>Expected output:</strong> console lines showing status (PASS/WARN/FAIL), any reasons, and a final "Quality Gate: &lt;STATUS&gt; — CI continues." or "… — blocking the build."<br>
+    <strong>What to say:</strong> "PASS and WARN both exit 0 — only FAIL blocks a merge. That's a deliberate policy choice: WARN is for signals worth a human noticing, not signals that should stop the whole team."</p>
+
+    <h2 id="showing-dashboard">Showing the Dashboard</h2>
+    <pre><code class="cmd">npm run serve:dashboard</code></pre>
+    <p><strong>What it does:</strong> regenerates the dashboard, then serves it at <code>http://localhost:4310</code>.<br>
+    <strong>What to do:</strong> open that URL in a browser, and scroll through the three panels: Production Process, Experiment A, Experiment B.<br>
+    <strong>What to say:</strong> "Everything on this page is read from a JSON file the SPC and gate engines already produced — the dashboard itself doesn't calculate anything. That's enforced by an automated check, not just something I'm asserting."</p>
+
+    <h2 id="showing-cicd">Showing CI/CD</h2>
+    <p>This part happens on GitHub, not the terminal. Exact procedure:</p>
+    <ol>
+      <li>Open the repository on GitHub and go to the <strong>Actions</strong> tab.</li>
+      <li>Select the <strong>Accessibility Quality Gate</strong> workflow.</li>
+      <li>Either open a recent run (from a real push), or click <strong>Run workflow</strong> to trigger it manually (this is what <code>workflow_dispatch</code> is for).</li>
+      <li>While it runs, point out the step list matches exactly what you just ran locally: verify scripts, the accessibility scan, "Evaluate Quality Gate," then dashboard generation and uploads.</li>
+      <li>If a run ever shows red (failed), scroll to the "Upload quality evidence" step anyway and show it still ran — that's the <code>if: always()</code> behavior described on the <a href="cicd.html#always-explained">CI/CD page</a>.</li>
+    </ol>
+    <div class="box box-say">
+      <div class="box-label">What I should say</div>
+      <p>"This workflow is read-only against the repository — it never commits anything back. Any new telemetry a CI run produces only leaves the runner as a downloadable 30-day artifact. That was a deliberate choice to avoid the pipeline creating its own commits."</p>
+    </div>
+
+    <h2 id="showing-experiments">Showing the Experiments</h2>
+    <pre><code class="cmd">npm run verify:experiment</code></pre>
+    <pre><code class="cmd">npm run verify:stable-cohort</code></pre>
+    <p><strong>What they do:</strong> regenerate and independently re-verify both 30-build synthetic cohorts.<br>
+    <strong>Expected output:</strong> <code>=== Results: 52 passed, 0 failed ===</code> and <code>=== Results: 30 passed, 0 failed ===</code> respectively.<br>
+    <strong>What to say:</strong> "Real production history is only 4 builds — nowhere near enough to prove the statistics work. So I built two synthetic, seeded, reproducible cohorts: Experiment A has five deliberate phases, including a real regression I injected at build 23, to test the SPC methodology under changing conditions. Experiment B is a single deliberately stable regime, used only for capability analysis, because Cpk assumes stability and Experiment A doesn't have it on purpose." Then walk the <a href="experiments.html">Experiments page</a>'s timeline diagram if there's time.</p>
+
+    <h2 id="ending-demo">Ending the Demo</h2>
+    <div class="box box-say">
+      <div class="box-label">What I should say (30-second close)</div>
+      <p>"So to summarize: this project takes accessibility testing, which normally only tells you pass or fail on one run, and turns it into a monitored process — using the same statistical control methods used in manufacturing quality engineering — so a CI pipeline can tell the difference between ordinary noise and a real regression, block on the real ones, warn on the borderline ones, and show the evidence for both. The contribution isn't a new statistical method or a new accessibility scanner — it's the bridge between those two established fields, applied and validated end to end."</p>
+    </div>
+
+    <div class="footer-note">Every command on this page is copied verbatim from <code>package.json</code> — see the full <a href="testing.html">Commands</a> reference for read-only vs. file-generating details.</div>
+  </main>
+</div>
+<script src="script.js"></script>
+</body>
+</html>

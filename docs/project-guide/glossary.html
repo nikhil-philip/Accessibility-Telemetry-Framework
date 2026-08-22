@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glossary — Project Guide</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">Accessibility Telemetry Framework</div>
+    <div class="brand-sub">Project Guide &amp; Viva Preparation</div>
+    <input id="search-box" type="search" placeholder="Search the guide…" autocomplete="off" />
+    <div id="search-results"></div>
+    <nav>
+      <ul><li><a href="index.html">Home</a></li></ul>
+      <div class="group-label">Understand the System</div>
+      <ul>
+        <li><a href="architecture.html">Architecture (L1–L7)</a></li>
+        <li><a href="telemetry.html">Telemetry</a></li>
+        <li><a href="spc.html">SPC From Zero</a></li>
+        <li><a href="experiments.html">Experiments A &amp; B</a></li>
+        <li><a href="gates.html">Quality Gates</a></li>
+        <li><a href="cicd.html">CI/CD Pipeline</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+      </ul>
+      <div class="group-label">Use It</div>
+      <ul>
+        <li><a href="testing.html">Commands</a></li>
+        <li><a href="demo.html">Reviewer Demo Script</a></li>
+      </ul>
+      <div class="group-label">Prepare for Viva</div>
+      <ul>
+        <li><a href="cheatsheet.html">Cheat Sheet</a></li>
+        <li><a href="questions.html">Reviewer Q&amp;A (40+)</a></li>
+        <li><a href="tough-questions.html">Tough Questions</a></li>
+        <li><a href="limitations.html">Limitations</a></li>
+        <li><a href="glossary.html">Glossary</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="page-kicker">Reference</div>
+    <h1>Glossary</h1>
+    <p class="lede">Every term explained in plain, beginner-friendly language. Alphabetical.</p>
+
+    <div id="glossary-list" class="table-wrap">
+      <table>
+        <tbody>
+        <tr><td style="width:220px"><strong>Accessibility</strong></td><td>Making a website usable by people with disabilities — for example, someone using a screen reader, or someone who can't use a mouse and navigates entirely by keyboard.</td></tr>
+        <tr><td><strong>Artifact</strong></td><td>A file (or folder of files) a CI run produces and uploads for download, without committing it to the repository. This project uploads the dashboard, telemetry, and gate verdict as an artifact, retained 30 days.</td></tr>
+        <tr><td><strong>axe-core</strong></td><td>The open-source accessibility rule engine (by Deque) that actually inspects a web page's HTML and reports WCAG violations. This project uses it via <code>@axe-core/playwright</code>; it doesn't reimplement any of its rule logic.</td></tr>
+        <tr><td><strong>Build</strong></td><td>One run of the test suite — one point in time where the accessibility tests executed and produced a result.</td></tr>
+        <tr><td><strong>Common cause (variation)</strong></td><td>Ordinary, expected noise in a process. Nothing to investigate — the process is "in control."</td></tr>
+        <tr><td><strong>Control chart</strong></td><td>A chart plotting a measurement over time, with a center line (the average) and two control limits (UCL/LCL) marking where a point becomes statistically surprising.</td></tr>
+        <tr><td><strong>Cpu / Cpk</strong></td><td>A process capability index — a single number describing whether a process's typical behavior comfortably clears a quality specification, not just whether it's stable. This project computes the one-sided version, Cpu, against an upper specification limit.</td></tr>
+        <tr><td><strong>CI/CD</strong></td><td>Continuous Integration / Continuous Delivery — automatically running tests (and other checks) every time code changes, instead of a human remembering to run them manually.</td></tr>
+        <tr><td><strong>CUSUM</strong></td><td>"Cumulative sum" — a statistical technique that adds up small deviations from the average over time, designed to catch a slow, persistent shift that no single point would trigger on its own.</td></tr>
+        <tr><td><strong>Defect</strong></td><td>One accessibility problem axe-core found — for example, an image missing alt text.</td></tr>
+        <tr><td><strong>Defect score</strong></td><td>The single number this whole project is built around: <code>10×critical + 5×serious + 2×moderate + 1×minor</code>, summed across every defect found in one build.</td></tr>
+        <tr><td><strong>Drift</strong></td><td>A slow, sustained shift in one direction, detected here by CUSUM — the software equivalent of a machine slowly going out of calibration.</td></tr>
+        <tr><td><strong>Expanding history</strong></td><td>An analysis method that always looks at every build so far, from build 1 up to the current one — the window only ever grows.</td></tr>
+        <tr><td><strong>LCL (Lower Control Limit)</strong></td><td>The line below which a measurement is statistically surprising on the low side. Clamped at 0 here, since a defect score can't be negative.</td></tr>
+        <tr><td><strong>Mean</strong></td><td>The plain average of a set of numbers.</td></tr>
+        <tr><td><strong>Nelson (rules)</strong></td><td>Eight pattern-detection rules (Lloyd S. Nelson, 1984) that flag a control chart as "out of control" based on the shape of recent points, not just a single point crossing a limit.</td></tr>
+        <tr><td><strong>Playwright</strong></td><td>A browser automation tool (by Microsoft) used here to launch a real Chromium browser, navigate ShopSmart's pages, and host the axe-core scan.</td></tr>
+        <tr><td><strong>Quality gate</strong></td><td>The component that looks at a build's numbers and statistical signals and decides PASS, WARN, or FAIL.</td></tr>
+        <tr><td><strong>PASS</strong></td><td>No gate reason triggered at all. Exit code 0; doesn't block CI.</td></tr>
+        <tr><td><strong>WARN</strong></td><td>At least one soft signal triggered (e.g. a worsening trend), but nothing severe enough to hard-fail. Exit code 0; doesn't block CI, but is visible everywhere.</td></tr>
+        <tr><td><strong>FAIL</strong></td><td>At least one hard signal triggered (e.g. a critical defect, a 3-sigma breach, a regression spike). Exit code 1; blocks CI if branch protection requires the check.</td></tr>
+        <tr><td><strong>Regression spike</strong></td><td>A same-build shock: this build's score jumped by an unusually large amount, in the bad direction, compared to the previous build.</td></tr>
+        <tr><td><strong>SPC (Statistical Process Control)</strong></td><td>A discipline, originally from manufacturing, for monitoring a repeated measurement over time and distinguishing ordinary variation from a genuine problem.</td></tr>
+        <tr><td><strong>Special cause (variation)</strong></td><td>A signal that something structurally changed — a real regression or a real improvement. Worth investigating.</td></tr>
+        <tr><td><strong>Sigma (σ)</strong></td><td>Standard deviation — a single number describing how far measurements typically spread out from the average. This project estimates it from the average moving range: <code>σ̂ = MR̄ / 1.128</code>.</td></tr>
+        <tr><td><strong>Telemetry</strong></td><td>Measurements collected automatically over time. Here: one small JSON record written per build, kept forever.</td></tr>
+        <tr><td><strong>Trailing window</strong></td><td>An analysis method that only looks at the most recent N builds (15, in this project's experiment tooling) — older builds age out and are no longer part of the current calculation.</td></tr>
+        <tr><td><strong>UCL (Upper Control Limit)</strong></td><td>The line above which a measurement is statistically surprising on the high side — roughly 3 standard deviations above the average.</td></tr>
+        <tr><td><strong>USL (Upper Specification Limit)</strong></td><td>An agreed-upon "worst acceptable" value for the process — a policy number, not something SPC derives on its own. This project uses USL=40 as an illustrative example in Experiment B.</td></tr>
+        <tr><td><strong>Walk-forward (analysis)</strong></td><td>Evaluating a build using only the data available up to and including that build — never peeking at future builds. Both experiment analysis methods work this way.</td></tr>
+        <tr><td><strong>WCAG</strong></td><td>Web Content Accessibility Guidelines — the W3C standard this project tests against, at level AA.</td></tr>
+        <tr><td><strong>WECO (Western Electric rules)</strong></td><td>Four classic pattern-detection rules (from the 1956 Western Electric Statistical Quality Control Handbook) — the historical predecessor to Nelson's later, larger rule set.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer-note">Every definition above matches how the term is actually used in this project's code and documentation, not just a textbook definition.</div>
+  </main>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
