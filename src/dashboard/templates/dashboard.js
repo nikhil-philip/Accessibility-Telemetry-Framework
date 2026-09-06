@@ -90,16 +90,27 @@
     var involved = {};
     spcReport.westernElectric.concat(spcReport.nelson).forEach(function (rule) {
       if (!rule.triggered) return;
-      rule.involvedIndices.forEach(function (i) {
-        involved[i] = true;
+      // Walk every historical occurrence (rule.occurrences), not just the
+      // most recent one (rule.involvedIndices) -- a build flagged months
+      // ago should stay flagged on this full-history chart even after a
+      // later occurrence supersedes it at the root level (see
+      // src/spc/types.ts's RuleEvaluation.occurrences doc comment). Falls
+      // back to the root involvedIndices for older/hand-built reports that
+      // predate occurrences (or reports where a rule was never rewired to
+      // populate it, e.g. tests that only build the root fields).
+      var occurrences = rule.occurrences && rule.occurrences.length ? rule.occurrences : [{ involvedIndices: rule.involvedIndices }];
+      occurrences.forEach(function (occurrence) {
+        occurrence.involvedIndices.forEach(function (i) {
+          involved[i] = true;
+        });
       });
     });
     var lastIndex = individuals.length - 1;
     return individuals.map(function (p, i) {
       var beyondLimits = p.value > spcReport.chart.uclX || p.value < spcReport.chart.lclX;
       var isRegression = i === lastIndex && spcReport.regressionSpike.detected;
-      var status = isRegression ? 'regression' : beyondLimits || involved[i] ? 'flagged' : 'normal';
-      return { status: status, beyondLimits: beyondLimits, ruleTriggered: !!involved[i] };
+      var status = p.specialCause ? 'special-cause' : isRegression ? 'regression' : beyondLimits || involved[i] ? 'flagged' : 'normal';
+      return { status: status, beyondLimits: beyondLimits, ruleTriggered: !!involved[i], specialCause: p.specialCause };
     });
   }
 
@@ -226,7 +237,14 @@
     // points
     var pointEls = [];
     opts.points.forEach(function (p) {
-      var cls = p.status === 'regression' ? 'point-regression' : p.status === 'flagged' ? 'point-flagged' : 'point-normal';
+      var cls =
+        p.status === 'special-cause'
+          ? 'point-special-cause'
+          : p.status === 'regression'
+            ? 'point-regression'
+            : p.status === 'flagged'
+              ? 'point-flagged'
+              : 'point-normal';
       var circle = svgEl('circle', {
         class: 'point ' + cls,
         cx: xScale(p.x),
@@ -235,7 +253,7 @@
         tabindex: '-1',
       });
       var title = svgEl('title', {});
-      title.textContent = p.label + ': ' + fmt(p.value) + (p.status !== 'normal' ? ' (' + p.status + ')' : '');
+      title.textContent = p.label + ': ' + fmt(p.value) + (p.status !== 'normal' ? ' (' + (p.status === 'special-cause' ? 'known special cause' : p.status) + ')' : '');
       circle.appendChild(title);
       circle.__point = p;
       pointEls.push(circle);
@@ -423,7 +441,14 @@
                 value: fmt(p.value),
                 ucl: fmt(prod.spcReport.chart.uclX, 2),
                 lcl: fmt(prod.spcReport.chart.lclX, 2),
-                signal: p.status === 'normal' ? 'In control' : p.status === 'regression' ? 'Regression spike' : 'Rule/limit violation',
+                signal:
+                  p.status === 'normal'
+                    ? 'In control'
+                    : p.status === 'special-cause'
+                      ? 'Known special cause (excluded from limits)'
+                      : p.status === 'regression'
+                        ? 'Regression spike'
+                        : 'Rule/limit violation',
               };
             }),
           );
@@ -442,7 +467,11 @@
 
   function describeProductionPoint(p) {
     var lines = ['<strong>' + p.label + '</strong>', 'defect score: ' + fmt(p.value)];
-    if (p.status !== 'normal') lines.push('<span class="tt-muted">' + (p.status === 'regression' ? 'Regression spike detected' : 'Beyond control limit or rule triggered') + '</span>');
+    if (p.status === 'special-cause') {
+      lines.push('<span class="tt-muted">Known special cause (' + p.extra.specialCause + ') -- excluded from control-limit calculation, kept for historical traceability</span>');
+    } else if (p.status !== 'normal') {
+      lines.push('<span class="tt-muted">' + (p.status === 'regression' ? 'Regression spike detected' : 'Beyond control limit or rule triggered') + '</span>');
+    }
     return lines.join('<br>');
   }
 
@@ -451,6 +480,7 @@
       { color: 'var(--series-1)', label: 'In control' },
       { color: 'var(--status-critical)', label: 'Rule / control-limit violation' },
       { color: 'var(--status-serious)', label: 'Regression spike' },
+      { color: 'var(--series-usl)', label: 'Known special cause (excluded from limits)' },
       { color: 'var(--text-muted)', label: 'UCL / LCL (dashed)', line: true },
       { color: 'var(--text-secondary)', label: 'Center line X̄', line: true },
     ];

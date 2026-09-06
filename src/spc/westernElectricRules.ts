@@ -23,6 +23,14 @@ import { nOfMBeyondSigma, nConsecutiveSameSide } from './ruleHelpers';
  * implemented here (not just one) because they are, formally, two
  * different published rule sets with two different run-length thresholds
  * for the "consecutive same side" test, even though they overlap.
+ *
+ * NOT consumed by the Quality Gate (gates/qualityGateEvaluator.ts): every
+ * WECO rule here is a duplicate of, or a strict subset of, a Nelson rule
+ * (Nelson is a strict superset -- see nelsonRules.ts), so the Lean gate
+ * model evaluates Nelson's rules exclusively and would otherwise raise a
+ * second, redundant reason for the same underlying statistical event.
+ * `evaluateWesternElectricRules()` and its results (`SpcReport.westernElectric`)
+ * are retained for informational/dashboard display only.
  */
 export function evaluateWesternElectricRules(values: number[], centerLine: number, sigma: number): RuleEvaluation[] {
   const rule1 = nOfMBeyondSigma(values, centerLine, sigma, 3, 1, 1);
@@ -39,6 +47,8 @@ export function evaluateWesternElectricRules(values: number[], centerLine: numbe
       triggered: rule1.triggered,
       triggeredAtIndex: rule1.triggeredAtIndex,
       involvedIndices: rule1.involvedIndices,
+      culminatesAtLatest: rule1.culminatesAtLatest,
+      occurrences: rule1.occurrences,
     },
     {
       ruleSet: 'WESTERN_ELECTRIC',
@@ -48,6 +58,8 @@ export function evaluateWesternElectricRules(values: number[], centerLine: numbe
       triggered: rule2.triggered,
       triggeredAtIndex: rule2.triggeredAtIndex,
       involvedIndices: rule2.involvedIndices,
+      culminatesAtLatest: rule2.culminatesAtLatest,
+      occurrences: rule2.occurrences,
     },
     {
       ruleSet: 'WESTERN_ELECTRIC',
@@ -57,6 +69,8 @@ export function evaluateWesternElectricRules(values: number[], centerLine: numbe
       triggered: rule3.triggered,
       triggeredAtIndex: rule3.triggeredAtIndex,
       involvedIndices: rule3.involvedIndices,
+      culminatesAtLatest: rule3.culminatesAtLatest,
+      occurrences: rule3.occurrences,
     },
     {
       ruleSet: 'WESTERN_ELECTRIC',
@@ -66,6 +80,9 @@ export function evaluateWesternElectricRules(values: number[], centerLine: numbe
       triggered: rule4.triggered,
       triggeredAtIndex: rule4.triggeredAtIndex,
       involvedIndices: rule4.involvedIndices,
+      direction: rule4.direction ?? undefined,
+      culminatesAtLatest: rule4.culminatesAtLatest,
+      occurrences: rule4.occurrences,
     },
   ];
 }

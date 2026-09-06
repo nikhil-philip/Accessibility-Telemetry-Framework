@@ -285,5 +285,93 @@ console.log('\n=== 15. Real telemetry/history/ data (informational -- too few po
   }
 }
 
+console.log('\n=== 16. Known special-cause exclusion (specialCauseClassifications.ts) ===');
+{
+  // The specified ShopSmart scenario: 4 baseline-eligible builds (22, 22,
+  // 22, 32) plus the deliberately-seeded worst-case build (defectScore
+  // 427, commit a8169fce...) that specialCauseClassifications.ts
+  // explicitly classifies as SPECIAL_CAUSE_HISTORICAL. Chronological order
+  // matters for MR-bar.
+  const SPECIAL_CAUSE_SHA = 'a8169fceefcc8356403a1ac1c0dcc549fc9903f9';
+  function pt(buildId: string, commitSha: string, value: number, dayOffset: number): DataPoint {
+    return { buildId, commitSha, timestamp: new Date(2026, 0, 1 + dayOffset).toISOString(), value };
+  }
+  const points: DataPoint[] = [
+    pt('b1', 'sha-1', 22, 0),
+    pt('b2', SPECIAL_CAUSE_SHA, 427, 1),
+    pt('b3', 'sha-3', 22, 2),
+    pt('b4', 'sha-4', 22, 3),
+    pt('b5', 'sha-5', 32, 4),
+  ];
+  const chart = computeControlChart(points);
+
+  check('the special-cause record is annotated on the returned individuals', chart.individuals[1]!.specialCause === 'SPECIAL_CAUSE_HISTORICAL', chart.individuals[1]);
+  check('all 5 records remain present in individuals -- nothing removed from history', chart.individuals.length === 5, chart.individuals.length);
+  check('the 427 value itself is unchanged/still present', chart.individuals[1]!.value === 427);
+
+  check('center line excludes the special cause: mean(22,22,22,32) = 24.50', Math.abs(chart.centerLine - 24.5) < 0.01, chart.centerLine);
+  check('MR-bar excludes the special cause: mean(0,0,10) = 3.33', Math.abs(chart.mrBar - 3.3333) < 0.01, chart.mrBar);
+  check('UCL_X is approximately 33.37', Math.abs(chart.uclX - 33.37) < 0.01, chart.uclX);
+  check('LCL_X is approximately 15.63', Math.abs(chart.lclX - 15.63) < 0.01, chart.lclX);
+}
+{
+  // A hypothetical build with an extreme, but UNCLASSIFIED, defect score
+  // must NOT be auto-excluded -- exclusion happens only for a commitSha
+  // explicitly listed in specialCauseClassifications.ts. Compared directly
+  // against the naive/unfiltered I-MR formula.
+  const points: DataPoint[] = [22, 22, 22, 900].map((value, i) => ({
+    buildId: `unclassified-${i}`,
+    commitSha: `sha-unclassified-${i}`,
+    timestamp: new Date(2026, 1, 1 + i).toISOString(),
+    value,
+  }));
+  const chart = computeControlChart(points);
+  const naiveMean = (22 + 22 + 22 + 900) / 4;
+
+  check('an unclassified outlier (900) is NOT excluded -- center line reflects it', Math.abs(chart.centerLine - naiveMean) < 0.001, chart.centerLine);
+  check('an unclassified outlier is NOT excluded -- MR-bar reflects the big jump', chart.mrBar > 100, chart.mrBar);
+}
+{
+  // Real telemetry/history/ data: confirms the exclusion mechanism is
+  // wired into the actual production loader/engine, not just a fixture.
+  // telemetry/history/ is real, append-only production data (ARCHITECTURE.md
+  // -- a real CI run, or a fresh accessibility scan after a fix, legitimately
+  // adds a new build over time; see scripts/verify-dashboard.ts's
+  // ORIGINAL_BASELINE_COMMIT_SHAS for the same append-only reasoning), so
+  // this independently HAND-COMPUTES the expected X-bar/MR-bar/UCL/LCL from
+  // whatever's actually on disk right now (excluding the one known
+  // special-cause commit) instead of asserting a number frozen to a
+  // specific historical record count -- a literal count/value here would
+  // break every time a build is legitimately added, which is not a
+  // regression in computeControlChart() itself.
+  const SPECIAL_CAUSE_SHA = 'a8169fceefcc8356403a1ac1c0dcc549fc9903f9';
+  const records = loadTelemetryHistory();
+  const report = computeSpcReport(records);
+  const specialCausePoint = report.chart.individuals.find((p) => p.commitSha === SPECIAL_CAUSE_SHA);
+
+  check('the real 427 build is present in telemetry history and on the chart', !!specialCausePoint && specialCausePoint.value === 427, specialCausePoint);
+  check('it is annotated as SPECIAL_CAUSE_HISTORICAL', specialCausePoint?.specialCause === 'SPECIAL_CAUSE_HISTORICAL', specialCausePoint);
+
+  const sorted = [...records].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  const eligible = sorted.filter((r) => r.commitSha !== SPECIAL_CAUSE_SHA).map((r) => r.defectScore);
+  const expectedCenterLine = eligible.reduce((s, v) => s + v, 0) / eligible.length;
+  const eligibleMovingRanges: number[] = [];
+  for (let i = 1; i < eligible.length; i++) eligibleMovingRanges.push(Math.abs(eligible[i]! - eligible[i - 1]!));
+  const expectedMrBar = eligibleMovingRanges.reduce((s, v) => s + v, 0) / eligibleMovingRanges.length;
+  const expectedUclX = expectedCenterLine + (3 / 1.128) * expectedMrBar;
+  const expectedLclX = Math.max(0, expectedCenterLine - (3 / 1.128) * expectedMrBar);
+
+  check(
+    `real data control limits exclude the special cause: X-bar = ${expectedCenterLine.toFixed(2)}, MR-bar = ${expectedMrBar.toFixed(2)} (hand-computed from ${eligible.length} currently-eligible on-disk records)`,
+    Math.abs(report.chart.centerLine - expectedCenterLine) < 0.01 && Math.abs(report.chart.mrBar - expectedMrBar) < 0.01,
+    { actual: { centerLine: report.chart.centerLine, mrBar: report.chart.mrBar }, expected: { centerLine: expectedCenterLine, mrBar: expectedMrBar } },
+  );
+  check(
+    `real data control limits: UCL_X ~= ${expectedUclX.toFixed(2)}, LCL_X ~= ${expectedLclX.toFixed(2)}`,
+    Math.abs(report.chart.uclX - expectedUclX) < 0.01 && Math.abs(report.chart.lclX - expectedLclX) < 0.01,
+    { actual: { uclX: report.chart.uclX, lclX: report.chart.lclX }, expected: { uclX: expectedUclX, lclX: expectedLclX } },
+  );
+}
+
 console.log(`\n=== Results: ${passCount} passed, ${failCount} failed ===`);
 if (failCount > 0) process.exit(1);

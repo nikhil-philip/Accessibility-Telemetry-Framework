@@ -52,6 +52,7 @@
         <li><a href="#spc-basics">The basics: process, variation, mean, sigma</a></li>
         <li><a href="#control-limits">Control limits: UCL, LCL, the I-MR chart</a></li>
         <li><a href="#common-vs-special-cause">Common cause vs. special cause</a></li>
+        <li><a href="#known-special-cause">Known special-cause exclusion</a></li>
         <li><a href="#techniques">Every detector this project runs</a></li>
         <li><a href="#window-diagram">Expanding history vs. trailing window</a></li>
       </ul>
@@ -122,6 +123,20 @@
     <div class="box box-say">
       <div class="box-label">What I should say</div>
       <p>"I'm using SPC because I don't want to look at every accessibility result in isolation. I want to know whether the behaviour of the process itself is becoming unusual. A static threshold — 'fail if more than 10 violations' — can't make that distinction. It can't tell a one-off blip from a sustained regression, and it's structurally blind to eight builds in a row that are each individually fine but all drifting the same direction."</p>
+    </div>
+
+    <h2 id="known-special-cause">Known Special-Cause Exclusion</h2>
+    <div class="box box-beginner">
+      <div class="box-label">Beginner explanation</div>
+      <p>The control limits above are supposed to describe <em>normal</em> variation. If one of the builds in history was a deliberately seeded worst-case build (used to prove the scoring pipeline detects a bad state at all, not a real regression), leaving it in the average and moving-range calculation would drag the limits wide enough to make genuine future regressions look "normal" too. This project handles that with a small, explicit list: a build's commit SHA can be marked as a known special cause, which removes it from the control-limit math while keeping it fully visible in the historical data and on the dashboard chart (drawn in a distinct colour, with its own tooltip/legend entry).</p>
+    </div>
+    <div class="box box-technical">
+      <div class="box-label">Technical explanation</div>
+      <p><code>src/spc/specialCauseClassifications.ts</code> is a small `Record&lt;commitSha, classification&gt;` registry (currently one entry: <code>SPECIAL_CAUSE_HISTORICAL</code>). <code>computeControlChart()</code> (<code>src/spc/controlChart.ts</code>) filters to the non-classified subsequence before computing X̄, MR̄, σ̂, and every UCL/LCL — the moving ranges are computed over that filtered subsequence directly (a gap left by an excluded point is closed up, not treated as a jump of 0), so the formulas themselves are unchanged, only their input set is narrowed. <code>individuals</code> and the full <code>movingRanges</code> array are untouched and still include every record, so nothing is hidden from history, the dashboard, or the quality gate's per-build checks.</p>
+    </div>
+    <div class="box box-question">
+      <div class="box-label">Possible reviewer question</div>
+      <p>"Doesn't this let you cherry-pick away any inconvenient data point?" No — exclusion only happens for a commit SHA explicitly listed in the registry ahead of time, with a documented reason. There is no automatic outlier detection here: an unclassified build, however extreme its score, is always included in the control-limit calculation. The mechanism only ever removes a build that a human has already investigated and attributed to a known, non-recurring cause — the classic SPC distinction between a "known special cause" and ordinary process variation (see <a href="#common-vs-special-cause">above</a>).</p>
     </div>
 
     <h2 id="techniques">Every Detector This Project Actually Runs</h2>

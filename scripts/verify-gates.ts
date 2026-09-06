@@ -22,7 +22,7 @@ import { DEFAULT_GATE_POLICY, mergeGatePolicy } from '../src/gates/gatePolicies'
 import { GatePolicyConfig, GateVerdict } from '../src/gates/types';
 import { TelemetryRecord } from '../src/telemetry/schema';
 import { ControlChartResult, SpcReport } from '../src/spc/types';
-import { computeSpcReport } from '../src/spc/spcEngine';
+import { computeSpcReport, loadTelemetryHistory } from '../src/spc/spcEngine';
 
 let passCount = 0;
 let failCount = 0;
@@ -204,24 +204,83 @@ console.log('\n=== 5. SPC process stability: UCL violation ===');
   check('failOnUclViolation=false suppresses the reason', !hasReason(suppressedVerdict, 'SPC_UCL_VIOLATION'), suppressedVerdict);
 }
 
-// --- 6. SPC rule triggers (fail-list vs warn-the-rest) -------------------
+// --- 6. Lean SPC rule triggers (Nelson 1/2/3 only, latest-build scoped, directional) ---
 
-console.log('\n=== 6. SPC Western Electric / Nelson rule triggers ===');
+console.log('\n=== 6. Lean SPC rule triggers: Nelson-only, culminatesAtLatest-scoped, directional ===');
 {
+  // Nelson rule 1, culminating at the latest build (index 9) => FAIL (default failRules).
   const report = baseSpcReport({
+    nelson: [
+      { ruleSet: 'NELSON', rule: 1, name: 'Beyond 3-sigma', description: 'x', triggered: true, triggeredAtIndex: 9, involvedIndices: [9], culminatesAtLatest: true },
+    ],
     westernElectric: [
-      { ruleSet: 'WESTERN_ELECTRIC', rule: 1, name: 'Beyond 3-sigma', description: 'x', triggered: true, triggeredAtIndex: 9, involvedIndices: [9] },
-      { ruleSet: 'WESTERN_ELECTRIC', rule: 4, name: '8 consecutive same side', description: 'x', triggered: true, triggeredAtIndex: 9, involvedIndices: [2, 3, 4, 5, 6, 7, 8, 9] },
+      // Same underlying event, reported under WECO too -- must NOT also produce a reason (WECO is pruned from gate evaluation entirely).
+      { ruleSet: 'WESTERN_ELECTRIC', rule: 1, name: 'Beyond 3-sigma', description: 'x', triggered: true, triggeredAtIndex: 9, involvedIndices: [9], culminatesAtLatest: true },
     ],
   });
   const verdict = evaluateQualityGate(CLEAN_RECORD, report);
-  check('default failRules: WECO rule 1 triggered => FAIL', reasonSeverity(verdict, 'SPC_RULE_WESTERN_ELECTRIC_1') === 'FAIL', verdict);
-  check('WECO rule 4 (not in failRules) => WARN by default', reasonSeverity(verdict, 'SPC_RULE_WESTERN_ELECTRIC_4') === 'WARN', verdict);
-  check('overall status is FAIL (rule 1 dominates)', verdict.status === 'FAIL');
+  check('default failRules: Nelson rule 1 triggered at latest => FAIL', reasonSeverity(verdict, 'SPC_RULE_NELSON_1') === 'FAIL', verdict);
+  check('WECO rule 1 (pruned) never produces a reason, even though triggered', !hasReason(verdict, 'SPC_RULE_WESTERN_ELECTRIC_1'), verdict);
+  check('overall status is FAIL', verdict.status === 'FAIL');
+}
+{
+  // Nelson rule 2 (shift), worsening direction ('above'), culminating at latest => WARN by default.
+  const report = baseSpcReport({
+    nelson: [
+      { ruleSet: 'NELSON', rule: 2, name: '9 consecutive same side', description: 'x', triggered: true, triggeredAtIndex: 9, involvedIndices: [1, 2, 3, 4, 5, 6, 7, 8, 9], direction: 'above', culminatesAtLatest: true },
+    ],
+  });
+  const verdict = evaluateQualityGate(CLEAN_RECORD, report);
+  check('Nelson rule 2, worsening (above), culminating at latest => WARN by default', reasonSeverity(verdict, 'SPC_RULE_NELSON_2') === 'WARN', verdict);
 
   const noWarnPolicy = mergeGatePolicy({ spc: { ...DEFAULT_GATE_POLICY.spc, warnOnOtherTriggeredRules: false } });
   const noWarnVerdict = evaluateQualityGate(CLEAN_RECORD, report, noWarnPolicy);
-  check('warnOnOtherTriggeredRules=false suppresses rule 4s WARN but keeps rule 1s FAIL', !hasReason(noWarnVerdict, 'SPC_RULE_WESTERN_ELECTRIC_4') && hasReason(noWarnVerdict, 'SPC_RULE_WESTERN_ELECTRIC_1'), noWarnVerdict);
+  check('warnOnOtherTriggeredRules=false suppresses rule 2s WARN', !hasReason(noWarnVerdict, 'SPC_RULE_NELSON_2'), noWarnVerdict);
+}
+{
+  // Nelson rule 2, but IMPROVING direction ('below') -- a genuinely improving run must remain PASS.
+  const report = baseSpcReport({
+    nelson: [
+      { ruleSet: 'NELSON', rule: 2, name: '9 consecutive same side', description: 'x', triggered: true, triggeredAtIndex: 9, involvedIndices: [1, 2, 3, 4, 5, 6, 7, 8, 9], direction: 'below', culminatesAtLatest: true },
+    ],
+  });
+  const verdict = evaluateQualityGate(CLEAN_RECORD, report);
+  check('Nelson rule 2, improving (below) => no reason, status PASS', !hasReason(verdict, 'SPC_RULE_NELSON_2') && verdict.status === 'PASS', verdict);
+}
+{
+  // Nelson rule 3 (trend), worsening ('up') vs improving ('down'), both culminating at latest.
+  const worsening = baseSpcReport({
+    nelson: [{ ruleSet: 'NELSON', rule: 3, name: '6 consecutive trending', description: 'x', triggered: true, triggeredAtIndex: 9, involvedIndices: [4, 5, 6, 7, 8, 9], direction: 'up', culminatesAtLatest: true }],
+  });
+  const improving = baseSpcReport({
+    nelson: [{ ruleSet: 'NELSON', rule: 3, name: '6 consecutive trending', description: 'x', triggered: true, triggeredAtIndex: 9, involvedIndices: [4, 5, 6, 7, 8, 9], direction: 'down', culminatesAtLatest: true }],
+  });
+  check('Nelson rule 3, worsening (up) => WARN by default', reasonSeverity(evaluateQualityGate(CLEAN_RECORD, worsening), 'SPC_RULE_NELSON_3') === 'WARN');
+  check('Nelson rule 3, improving (down) => no reason, status PASS', !hasReason(evaluateQualityGate(CLEAN_RECORD, improving), 'SPC_RULE_NELSON_3') && evaluateQualityGate(CLEAN_RECORD, improving).status === 'PASS');
+}
+{
+  // Recency scoping: a rule triggered somewhere in history but NOT culminating at the latest build must not gate the CURRENT build.
+  const report = baseSpcReport({
+    nelson: [
+      { ruleSet: 'NELSON', rule: 1, name: 'Beyond 3-sigma', description: 'x', triggered: true, triggeredAtIndex: 3, involvedIndices: [3], culminatesAtLatest: false },
+    ],
+  });
+  const verdict = evaluateQualityGate(CLEAN_RECORD, report);
+  check('a historical (non-latest) Nelson rule 1 violation does not fail the current build', !hasReason(verdict, 'SPC_RULE_NELSON_1') && verdict.status === 'PASS', verdict);
+}
+{
+  // Rule exclusion: Nelson rules 4 (alternation), 7 (stratification), 8 (mixture) never reach the gate, even triggered at latest.
+  const report = baseSpcReport({
+    nelson: [
+      { ruleSet: 'NELSON', rule: 4, name: '14 consecutive alternating', description: 'x', triggered: true, triggeredAtIndex: 9, involvedIndices: [], culminatesAtLatest: true },
+      { ruleSet: 'NELSON', rule: 5, name: '2 of 3 beyond 2-sigma', description: 'x', triggered: true, triggeredAtIndex: 9, involvedIndices: [], culminatesAtLatest: true },
+      { ruleSet: 'NELSON', rule: 6, name: '4 of 5 beyond 1-sigma', description: 'x', triggered: true, triggeredAtIndex: 9, involvedIndices: [], culminatesAtLatest: true },
+      { ruleSet: 'NELSON', rule: 7, name: '15 consecutive within 1-sigma', description: 'x', triggered: true, triggeredAtIndex: 9, involvedIndices: [], culminatesAtLatest: true },
+      { ruleSet: 'NELSON', rule: 8, name: '8 consecutive beyond 1-sigma (either side)', description: 'x', triggered: true, triggeredAtIndex: 9, involvedIndices: [], culminatesAtLatest: true },
+    ],
+  });
+  const verdict = evaluateQualityGate(CLEAN_RECORD, report);
+  check('Nelson rules 4/5/6/7/8 never contribute a gate reason, even triggered at latest', verdict.reasons.length === 0 && verdict.status === 'PASS', verdict);
 }
 
 // --- 7. Regression detection ---------------------------------------------
@@ -432,6 +491,85 @@ console.log('\n=== 15. Real telemetry/history/ data (informational sanity check)
   const verdict = evaluateFromDisk();
   console.log('  evaluateFromDisk():', { status: verdict.status, spcProcessState: verdict.spcProcessState, reasons: verdict.reasons.map((r) => r.ruleId) });
   check('evaluateFromDisk() returns a well-formed verdict without throwing', ['PASS', 'WARN', 'FAIL'].includes(verdict.status));
+}
+
+// --- 16. Real telemetry/history/: the 427 historical spike does not fail a later, clean build ---
+
+console.log('\n=== 16. End-to-end: a historical spike (real build 427) does not fail a later build ===');
+{
+  // Real production data: 22, 427 [special-cause], 22, 22, 32 (see
+  // specialCauseClassifications.ts / verify-spc.ts test 16). 427 is excluded
+  // from control-limit calculation but NOT from rule-pattern detection
+  // inputs (documented, intentional -- see controlChart.ts), so relative to
+  // X-bar=24.50/sigma=2.96 it is still a massive beyond-3-sigma outlier and
+  // Nelson rule 1 DOES trigger on it historically (at its own index, not
+  // the latest build).
+  const records = loadTelemetryHistory();
+  const spcReport = computeSpcReport(records);
+  const rule1 = spcReport.nelson.find((r) => r.rule === 1);
+  const latestIndex = spcReport.chart.individuals.length - 1;
+
+  check('Nelson rule 1 does trigger somewhere in the real history (on the 427 spike)', rule1?.triggered === true, rule1);
+  check('...but NOT at the latest index -- it does not culminate at the current build', rule1?.triggeredAtIndex !== latestIndex && rule1?.culminatesAtLatest === false, rule1);
+
+  const verdict = evaluateFromDisk();
+  console.log('  evaluateFromDisk() reasons:', verdict.reasons.map((r) => r.ruleId));
+  check('the historical spike does not appear as an SPC_RULE_NELSON_1 reason on the current build', !hasReason(verdict, 'SPC_RULE_NELSON_1'), verdict.reasons);
+}
+
+// --- 17. A 15-build low-variance run does not warn/fail (Nelson rule 7 excluded) ---
+
+console.log('\n=== 17. A stratified (suspiciously low-variance) run does not warn/fail the gate (Nelson rule 7 excluded) ===');
+{
+  // Same construction as verify-spc.ts test 8: an irregular baseline, then
+  // 15 points oscillating by a tiny amount -- tight enough, relative to the
+  // combined series' own self-computed sigma, to satisfy Nelson rule 7
+  // (15 consecutive within 1-sigma). Run through the real, unmodified
+  // computeSpcReport()/evaluateLatestBuild() (not a hand-built fixture) so
+  // this is a genuine end-to-end check, not just an isolated policy-layer test.
+  const base = 20;
+  const baselineSpread = 2;
+  const baseline = Array.from({ length: 20 }, (_, i) => base + Math.round(Math.sin(i * 1.37) * baselineSpread));
+  const tinyStep = 0.05; // tiny relative to the baseline's own spread/sigma
+  const tight = Array.from({ length: 15 }, (_, i) => base + (i % 2 === 0 ? tinyStep : -tinyStep));
+  const values = [...baseline, ...tight];
+  const records = values.map((v, i) => mkRecord({ buildId: `strat-${i}`, timestamp: new Date(2026, 2, 1, 0, i).toISOString(), defectScore: v, minor: Math.round(v) }));
+
+  const spcReport = computeSpcReport(records);
+  const rule7 = spcReport.nelson.find((r) => r.rule === 7);
+  check('Nelson rule 7 (stratification) does trigger on the tight 15-build tail', rule7?.triggered === true, rule7);
+
+  const verdict = evaluateLatestBuild(records);
+  console.log('  Gate verdict:', { status: verdict.status, reasons: verdict.reasons.map((r) => r.ruleId) });
+  check('the gate never reports SPC_RULE_NELSON_7 (rule 7 is excluded from the Lean gate model)', !hasReason(verdict, 'SPC_RULE_NELSON_7'), verdict.reasons);
+  check('a clean, merely-stratified history PASSes the gate end-to-end', verdict.status === 'PASS', verdict);
+}
+
+// --- 18. A consecutive run of genuinely improving builds does not warn -----
+
+console.log('\n=== 18. A consecutive run below X-bar (genuine improvement) does not warn the gate ===');
+{
+  // An irregular, elevated baseline establishes X-bar and sigma, followed by
+  // 9 consecutive builds noticeably and consistently BELOW that center line
+  // -- a real Nelson rule 2 same-side run, on the improving side. Values stay
+  // noisy/irregular (not monotonic) so this exercises rule 2, not rule 3.
+  // Kept below the default weighted-defect-score WARN threshold (30) throughout,
+  // so the only thing that could possibly warn/fail here is the SPC rule 2 path itself.
+  const base = 20;
+  const baseline = Array.from({ length: 20 }, (_, i) => base + Math.round(Math.sin(i * 1.37) * 3));
+  const improvedLevel = 13; // below the baseline center line (rule 2's same-side test), but NOT extreme enough to also trip the non-directional rule 1 / UCL-LCL check -- this fixture is specifically about the directional rule 2 filter, not rule 1's (correctly) symmetric one
+  const improved = [improvedLevel + 1, improvedLevel - 1, improvedLevel, improvedLevel - 2, improvedLevel + 2, improvedLevel - 1, improvedLevel, improvedLevel + 1, improvedLevel];
+  const values = [...baseline, ...improved];
+  const records = values.map((v, i) => mkRecord({ buildId: `improve-${i}`, timestamp: new Date(2026, 3, 1, 0, i).toISOString(), defectScore: v, minor: v }));
+
+  const spcReport = computeSpcReport(records);
+  const rule2 = spcReport.nelson.find((r) => r.rule === 2);
+  check('Nelson rule 2 triggers on the improving run, direction=below', rule2?.triggered === true && rule2?.direction === 'below', rule2);
+
+  const verdict = evaluateLatestBuild(records);
+  console.log('  Gate verdict:', { status: verdict.status, reasons: verdict.reasons.map((r) => r.ruleId) });
+  check('the gate never reports SPC_RULE_NELSON_2 for an improving (below-center) run', !hasReason(verdict, 'SPC_RULE_NELSON_2'), verdict.reasons);
+  check('a genuinely improving run PASSes the gate end-to-end (no warning at all)', verdict.status === 'PASS', verdict);
 }
 
 console.log(`\n=== Results: ${passCount} passed, ${failCount} failed ===`);

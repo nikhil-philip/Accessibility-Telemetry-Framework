@@ -298,7 +298,7 @@ console.log('\n=== 9. selectHistoryWindow() correctness ===');
   const records = generateExperimentRecords(EXPERIMENT_SEED);
 
   check('EXPANDING_HISTORY at build 20 returns all 20 records regardless of windowSize', selectHistoryWindow(records, 20, 'EXPANDING_HISTORY', 15).length === 20);
-  check('EXPANDING_HISTORY at build 1 returns exactly 1 record', selectHistoryWindow(records, 1, 'EXPANDING_HISTORY').length === 1);
+  check('EXPANDING_HISTORY at build 1 returns exactly 1 record', selectHistoryWindow(records, 1, 'EXPANDING_HISTORY', DEFAULT_TRAILING_WINDOW_SIZE).length === 1);
 
   check('TRAILING_WINDOW at build 10 (fewer than windowSize=15 exist) returns all 10 available records', selectHistoryWindow(records, 10, 'TRAILING_WINDOW', 15).length === 10);
   const w20 = selectHistoryWindow(records, 20, 'TRAILING_WINDOW', 15);
@@ -310,7 +310,7 @@ console.log('\n=== 9. selectHistoryWindow() correctness ===');
 
   let threw = false;
   try {
-    selectHistoryWindow(records, 31, 'EXPANDING_HISTORY');
+    selectHistoryWindow(records, 31, 'EXPANDING_HISTORY', DEFAULT_TRAILING_WINDOW_SIZE);
   } catch {
     threw = true;
   }

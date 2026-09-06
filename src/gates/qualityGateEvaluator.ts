@@ -181,15 +181,45 @@ function isFailRule(rule: RuleEvaluation, policy: GatePolicyConfig): boolean {
   return policy.spc.failRules.some((ref) => ref.ruleSet === rule.ruleSet && ref.rule === rule.rule);
 }
 
-/** Evaluates every triggered Western Electric / Nelson rule against the configured fail-list; anything else triggered is a WARN if the policy allows it. */
+/**
+ * The Lean SPC rule set this gate acts on: Nelson rule 1 (extreme spike),
+ * rule 2 (sustained one-sided shift), and rule 3 (directional trend/drift)
+ * -- see nelsonRules.ts's "Lean Quality Gate model" doc comment. Western
+ * Electric is not evaluated here at all (every WECO rule duplicates, or is
+ * a strict subset of, one of these three Nelson rules -- see
+ * westernElectricRules.ts). Nelson rules 4 (alternation), 5, 6, 7
+ * (stratification), and 8 (mixture) remain fully computed and available on
+ * SpcReport.nelson for informational/dashboard use, but never reach the
+ * gate: 4/7/8 are measurement-system health signals rather than per-build
+ * defect-regression signals, and 5/6 are already covered at CI-relevant
+ * sensitivity by rule 1/2.
+ */
+const LEAN_GATE_RULES: ReadonlySet<number> = new Set([1, 2, 3]);
+
+/** Rule 2 (shift) and rule 3 (trend) are directional; only the worsening direction (above center line / trending up) should ever contribute a gate reason -- a genuinely improving run must remain PASS. Rule 1 (beyond 3-sigma) carries no `direction` and is unaffected by this filter. */
+function isWorseningOrDirectionless(rule: RuleEvaluation): boolean {
+  if (rule.direction === undefined) return true;
+  return rule.direction === 'above' || rule.direction === 'up';
+}
+
+/**
+ * Evaluates the Lean SPC rule set (Nelson rules 1/2/3 only, see
+ * LEAN_GATE_RULES) against the configured fail-list; anything else
+ * triggered is a WARN if the policy allows it. A rule only ever contributes
+ * a reason if it is BOTH active on the current/latest build
+ * (`culminatesAtLatest` -- a historical violation elsewhere in the window
+ * must not permanently fail every later build) AND, for the two directional
+ * rules, worsening rather than improving.
+ */
 function checkTriggeredRules(spcReport: SpcReport, policy: GatePolicyConfig): GateReason[] {
   if (!hasSufficientSpcData(spcReport)) return [];
 
-  const allRules = [...spcReport.westernElectric, ...spcReport.nelson];
   const reasons: GateReason[] = [];
 
-  for (const rule of allRules) {
-    if (!rule.triggered) continue;
+  for (const rule of spcReport.nelson) {
+    if (!LEAN_GATE_RULES.has(rule.rule)) continue;
+    if (!rule.triggered || !rule.culminatesAtLatest) continue;
+    if (!isWorseningOrDirectionless(rule)) continue;
 
     const severity: GateReasonSeverity | null = isFailRule(rule, policy)
       ? 'FAIL'
@@ -202,7 +232,7 @@ function checkTriggeredRules(spcReport: SpcReport, policy: GatePolicyConfig): Ga
     reasons.push({
       ruleId: `SPC_RULE_${rule.ruleSet}_${rule.rule}`,
       severity,
-      message: `${rule.ruleSet} rule ${rule.rule} ("${rule.name}") triggered: ${rule.description}`,
+      message: `${rule.ruleSet} rule ${rule.rule} ("${rule.name}") triggered on the latest build: ${rule.description}`,
       actual: 1,
       threshold: 0,
     });

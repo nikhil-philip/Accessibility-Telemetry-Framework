@@ -301,6 +301,7 @@ svg.chart .point { stroke: var(--surface-1); stroke-width: 2; }
 svg.chart .point-normal { fill: var(--series-1); }
 svg.chart .point-flagged { fill: var(--status-critical); }
 svg.chart .point-regression { fill: var(--status-serious); }
+svg.chart .point-special-cause { fill: var(--series-usl); }
 svg.chart .point:hover, svg.chart .point:focus { stroke: var(--text-primary); outline: none; }
 
 svg.chart .phase-band { fill: var(--phase-band-a); }

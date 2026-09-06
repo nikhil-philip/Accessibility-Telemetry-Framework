@@ -18,6 +18,19 @@ import { GatePolicyConfig } from './types';
  *   capabilityAnalysis.ts's own doc comment is explicit that a low Cpu is
  *   "a signal about the baseline or the policy, not about any individual
  *   build" -- not something an individual PR can fix by itself.
+ *
+ * failRules deliberately names only NELSON rule 1, not the equivalent
+ * WESTERN_ELECTRIC rule 1 -- qualityGateEvaluator.ts's checkTriggeredRules()
+ * evaluates Nelson's rules exclusively (see nelsonRules.ts's "Lean Quality
+ * Gate model" doc comment); WECO rule 1 is the same beyond-3-sigma pattern
+ * and would only ever raise a duplicate reason for the same event.
+ *
+ * spcOptions.windowSize defaults the production CI path (evaluateFromDisk()
+ * / evaluateLatestBuild(), gates/qualityGateEvaluator.ts) to a 25-build
+ * trailing baseline rather than computeSpcReport()'s own unbounded default
+ * (spc/spcEngine.ts) -- so control limits and every rule/detector reflect
+ * recent process behavior instead of the entire, ever-growing project
+ * history.
  */
 export const DEFAULT_GATE_POLICY: GatePolicyConfig = {
   maxCriticalDefects: 0,
@@ -28,10 +41,7 @@ export const DEFAULT_GATE_POLICY: GatePolicyConfig = {
   },
   spc: {
     failOnUclViolation: true,
-    failRules: [
-      { ruleSet: 'WESTERN_ELECTRIC', rule: 1 },
-      { ruleSet: 'NELSON', rule: 1 },
-    ],
+    failRules: [{ ruleSet: 'NELSON', rule: 1 }],
     warnOnOtherTriggeredRules: true,
   },
   regression: {
@@ -48,6 +58,9 @@ export const DEFAULT_GATE_POLICY: GatePolicyConfig = {
   capability: {
     warnBelowCpu: 1.33,
     failBelowCpu: 1.0,
+  },
+  spcOptions: {
+    windowSize: 25,
   },
 };
 

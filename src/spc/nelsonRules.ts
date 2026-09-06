@@ -34,6 +34,18 @@ import {
  * actually fine. For this project that would look like, e.g., two very
  * different applications' scans accidentally being appended to the same
  * telemetry history.
+ *
+ * Lean Quality Gate model (gates/qualityGateEvaluator.ts): only rules 1, 2,
+ * and 3 ever contribute a gate FAIL/WARN, and only when they culminate at
+ * the latest build (`culminatesAtLatest`) -- rule 1 as a FAIL, rules 2 and
+ * 3 as a WARN and only in the worsening direction (`direction: 'above'`/
+ * `'up'`). Rules 4, 5, 6, 7, and 8 remain fully computed and reported here
+ * (informational/dashboard display, and available to any caller that wants
+ * the full WECO/Nelson picture) but never reach the gate -- rules 7 and 8
+ * in particular are measurement-system health signals, not per-build
+ * defect-regression signals, and rules 4/5/6 are either off-topic
+ * (alternation) or subsumed by the culminates-at-latest-scoped rule 1/2/3
+ * trio for this project's purposes.
  */
 export function evaluateNelsonRules(values: number[], centerLine: number, sigma: number): RuleEvaluation[] {
   const rule1 = nOfMBeyondSigma(values, centerLine, sigma, 3, 1, 1);
@@ -54,6 +66,8 @@ export function evaluateNelsonRules(values: number[], centerLine: number, sigma:
       triggered: rule1.triggered,
       triggeredAtIndex: rule1.triggeredAtIndex,
       involvedIndices: rule1.involvedIndices,
+      culminatesAtLatest: rule1.culminatesAtLatest,
+      occurrences: rule1.occurrences,
     },
     {
       ruleSet: 'NELSON',
@@ -63,6 +77,9 @@ export function evaluateNelsonRules(values: number[], centerLine: number, sigma:
       triggered: rule2.triggered,
       triggeredAtIndex: rule2.triggeredAtIndex,
       involvedIndices: rule2.involvedIndices,
+      direction: rule2.direction ?? undefined,
+      culminatesAtLatest: rule2.culminatesAtLatest,
+      occurrences: rule2.occurrences,
     },
     {
       ruleSet: 'NELSON',
@@ -72,6 +89,9 @@ export function evaluateNelsonRules(values: number[], centerLine: number, sigma:
       triggered: rule3.triggered,
       triggeredAtIndex: rule3.triggeredAtIndex,
       involvedIndices: rule3.involvedIndices,
+      direction: rule3.direction ?? undefined,
+      culminatesAtLatest: rule3.culminatesAtLatest,
+      occurrences: rule3.occurrences,
     },
     {
       ruleSet: 'NELSON',
@@ -81,6 +101,8 @@ export function evaluateNelsonRules(values: number[], centerLine: number, sigma:
       triggered: rule4.triggered,
       triggeredAtIndex: rule4.triggeredAtIndex,
       involvedIndices: rule4.involvedIndices,
+      culminatesAtLatest: rule4.culminatesAtLatest,
+      occurrences: rule4.occurrences,
     },
     {
       ruleSet: 'NELSON',
@@ -90,6 +112,8 @@ export function evaluateNelsonRules(values: number[], centerLine: number, sigma:
       triggered: rule5.triggered,
       triggeredAtIndex: rule5.triggeredAtIndex,
       involvedIndices: rule5.involvedIndices,
+      culminatesAtLatest: rule5.culminatesAtLatest,
+      occurrences: rule5.occurrences,
     },
     {
       ruleSet: 'NELSON',
@@ -99,6 +123,8 @@ export function evaluateNelsonRules(values: number[], centerLine: number, sigma:
       triggered: rule6.triggered,
       triggeredAtIndex: rule6.triggeredAtIndex,
       involvedIndices: rule6.involvedIndices,
+      culminatesAtLatest: rule6.culminatesAtLatest,
+      occurrences: rule6.occurrences,
     },
     {
       ruleSet: 'NELSON',
@@ -108,6 +134,8 @@ export function evaluateNelsonRules(values: number[], centerLine: number, sigma:
       triggered: rule7.triggered,
       triggeredAtIndex: rule7.triggeredAtIndex,
       involvedIndices: rule7.involvedIndices,
+      culminatesAtLatest: rule7.culminatesAtLatest,
+      occurrences: rule7.occurrences,
     },
     {
       ruleSet: 'NELSON',
@@ -117,6 +145,8 @@ export function evaluateNelsonRules(values: number[], centerLine: number, sigma:
       triggered: rule8.triggered,
       triggeredAtIndex: rule8.triggeredAtIndex,
       involvedIndices: rule8.involvedIndices,
+      culminatesAtLatest: rule8.culminatesAtLatest,
+      occurrences: rule8.occurrences,
     },
   ];
 }

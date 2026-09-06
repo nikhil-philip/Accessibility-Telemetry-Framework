@@ -1,4 +1,5 @@
 import { ControlChartResult, DataPoint } from './types';
+import { getSpecialCauseClassification } from './specialCauseClassifications';
 
 /**
  * Individuals (I) and Moving Range (MR) chart math.
@@ -42,6 +43,20 @@ import { ControlChartResult, DataPoint } from './types';
  * MR-chart control limits use their own tabulated constants for n=2:
  *   UCL_MR = D4*MR-bar,  D4 = 3.267
  *   LCL_MR = D3*MR-bar,  D3 = 0        (D3 = 0 for all subgroup sizes <= 6)
+ *
+ * --- Known special-cause exclusion (see specialCauseClassifications.ts) ---
+ *
+ * X-bar, MR-bar, sigma-hat, and every control limit above are computed
+ * from baseline-eligible points only: any record whose commitSha is
+ * explicitly listed in specialCauseClassifications.ts is left out of
+ * these sums, on the standard SPC rationale that a known, already
+ * root-caused special cause does not describe the process's *normal*
+ * variation and would otherwise distort the very limits meant to detect
+ * the next one. `individuals` and `movingRanges` below still include
+ * every point, classified or not -- exclusion only narrows the formulas'
+ * inputs, never the historical record. A record is excluded only when
+ * explicitly classified; nothing here infers "special cause" from a
+ * value's size.
  */
 
 /** Range-chart bias-correction constant for a moving range of 2 consecutive points. */
@@ -71,7 +86,9 @@ function clampLowerLimit(value: number): number {
 }
 
 export function computeControlChart(points: DataPoint[]): ControlChartResult {
-  const individuals = [...points].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  const individuals = [...points]
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+    .map((p) => ({ ...p, specialCause: getSpecialCauseClassification(p.commitSha) }));
   const values = individuals.map((p) => p.value);
 
   const movingRanges: number[] = [];
@@ -79,8 +96,18 @@ export function computeControlChart(points: DataPoint[]): ControlChartResult {
     movingRanges.push(Math.abs(values[i]! - values[i - 1]!));
   }
 
-  const centerLine = mean(values);
-  const mrBar = mean(movingRanges);
+  // Baseline-eligible subsequence: every point that is NOT explicitly
+  // classified as a special cause. Control limits are estimated from this
+  // subsequence's own moving ranges (gaps left by an excluded point are
+  // closed up, not treated as a 0), not from `movingRanges` above.
+  const eligibleValues = individuals.filter((p) => !p.specialCause).map((p) => p.value);
+  const eligibleMovingRanges: number[] = [];
+  for (let i = 1; i < eligibleValues.length; i++) {
+    eligibleMovingRanges.push(Math.abs(eligibleValues[i]! - eligibleValues[i - 1]!));
+  }
+
+  const centerLine = mean(eligibleValues);
+  const mrBar = mean(eligibleMovingRanges);
   const sigma = mrBar / D2_CONSTANT;
 
   const uclX = centerLine + I_CHART_SIGMA_FACTOR * mrBar;

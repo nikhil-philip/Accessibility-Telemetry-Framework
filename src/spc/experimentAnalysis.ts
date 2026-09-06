@@ -28,10 +28,14 @@
  *     process improvement can make history look anomalous in hindsight.
  *
  * TRAILING_WINDOW
- *   - Only the most recent `windowSize` builds (default 15) are included
- *     at each step; selectHistoryWindow() below is the only place this
- *     truncation happens -- computeSpcReport() itself is given a plain,
- *     shorter array and has no idea a window was applied.
+ *   - Only the most recent `windowSize` builds (default 15 here, via
+ *     DEFAULT_TRAILING_WINDOW_SIZE) are included at each step, via
+ *     selectHistoryWindow() (spcEngine.ts -- re-exported below for
+ *     backward compatibility). This module always pre-slices the window
+ *     itself before calling computeSpcReport(), so its own windowing
+ *     behavior is unaffected by computeSpcReport()'s separate, independent
+ *     `options.windowSize` (used by the production CI gate path instead;
+ *     see spcEngine.ts's computeSpcReport() doc comment).
  *   - Older observations age out of every calculation once more than
  *     windowSize builds have occurred, so the baseline reflects recent
  *     process behavior rather than the entire project history.
@@ -41,13 +45,15 @@
  * evidence (ARCHITECTURE.md RQ2/RQ3).
  */
 import { TelemetryRecord } from '../telemetry/schema';
-import { computeSpcReport } from './spcEngine';
+import { computeSpcReport, selectHistoryWindow, AnalysisMethod } from './spcEngine';
 import { SpcEngineOptions, SpcReport } from './types';
 import { evaluateQualityGate } from '../gates/qualityGateEvaluator';
 import { DEFAULT_GATE_POLICY } from '../gates/gatePolicies';
 import { GatePolicyConfig, GateVerdict } from '../gates/types';
 
-export type AnalysisMethod = 'EXPANDING_HISTORY' | 'TRAILING_WINDOW';
+/** Re-exported for backward compatibility -- both now live in spcEngine.ts (see selectHistoryWindow's doc comment there for why). */
+export type { AnalysisMethod };
+export { selectHistoryWindow };
 
 export const DEFAULT_TRAILING_WINDOW_SIZE = 15;
 
@@ -70,29 +76,6 @@ export const ANALYSIS_METHOD_NOTES: Record<AnalysisMethod, { label: string; note
     ],
   },
 };
-
-/**
- * Selects the input array computeSpcReport() will see for `buildNumber`
- * (1-indexed) under the given method. This is the ONLY place windowing
- * happens -- computeSpcReport() and every WECO/Nelson/trend/CUSUM/Cpk
- * calculation underneath it are given a plain TelemetryRecord[] and are
- * unaware a window was ever applied.
- */
-export function selectHistoryWindow(
-  records: TelemetryRecord[],
-  buildNumber: number,
-  method: AnalysisMethod,
-  windowSize: number = DEFAULT_TRAILING_WINDOW_SIZE,
-): TelemetryRecord[] {
-  if (buildNumber < 1 || buildNumber > records.length) {
-    throw new Error(`selectHistoryWindow: buildNumber ${buildNumber} out of range 1..${records.length}`);
-  }
-  if (method === 'EXPANDING_HISTORY') {
-    return records.slice(0, buildNumber);
-  }
-  const start = Math.max(0, buildNumber - windowSize);
-  return records.slice(start, buildNumber);
-}
 
 export interface BuildAnalysisResult {
   method: AnalysisMethod;

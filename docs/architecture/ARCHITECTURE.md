@@ -325,6 +325,8 @@ UCL_MR  = 3.267 × MR̄
 σ̂       = MR̄ / 1.128            (d2 constant for n = 2)
 ```
 
+**Known special-cause exclusion.** X̄, MR̄, σ̂, and every control limit above are computed only from builds that have not been explicitly classified as a special cause (`src/spc/specialCauseClassifications.ts`, keyed by commit SHA). Known, already-investigated special-cause observations — e.g. a deliberately seeded worst-case build used to validate the scoring/detection pipeline itself — are retained for historical traceability and remain visible on the dashboard, but are excluded from the calculation of normal-process SPC control limits, so a known anomaly cannot distort the limits meant to catch the next one. This is a declarative, explicit classification only: nothing in the engine infers "special cause" from a value's size, so an unclassified record, however extreme, remains fully eligible for control-limit calculation.
+
 ### 8.3 Western Electric / Nelson rules
 
 A point inside the control limits can still be a signal if the *pattern* is non-random. The Rule Evaluator implements four Nelson rules:

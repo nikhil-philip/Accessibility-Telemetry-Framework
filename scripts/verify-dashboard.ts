@@ -135,10 +135,20 @@ console.log('\n=== 3. Experiment A section matches calling experimentAnalysis.ts
   check('experimentA.trailingWindow.summary matches summarizeResults() exactly', JSON.stringify(data.experimentA.trailingWindow.summary) === JSON.stringify(summarizeResults(expectedTrailing)));
 
   // Regression guard: ties this layer back to the project's already-recorded, validated results.
+  //
+  // These counts were re-recorded after the Lean SPC gate refactor
+  // (gates/qualityGateEvaluator.ts): the gate now evaluates only Nelson
+  // rules 1/2/3 (WECO and Nelson 4/5/6/7/8 no longer contribute a reason),
+  // only when a rule culminates at the CURRENT build (a historical
+  // violation elsewhere in the window no longer permanently fails every
+  // later build), and rules 2/3 only in the worsening direction. Against
+  // the same 30-build Experiment A cohort this legitimately produces fewer
+  // FAILs and a different PASS/WARN split than the pre-refactor gate did --
+  // this is the intended effect of the refactor, not a regression.
   const es = data.experimentA.expandingHistory.summary;
   const ts = data.experimentA.trailingWindow.summary;
-  check('EXPANDING_HISTORY summary matches the recorded validated result (1 PASS / 3 WARN / 26 FAIL)', es.passCount === 1 && es.warnCount === 3 && es.failCount === 26, es);
-  check('TRAILING_WINDOW summary matches the recorded validated result (1 PASS / 5 WARN / 24 FAIL)', ts.passCount === 1 && ts.warnCount === 5 && ts.failCount === 24, ts);
+  check('EXPANDING_HISTORY summary matches the recorded validated result (6 PASS / 2 WARN / 22 FAIL)', es.passCount === 6 && es.warnCount === 2 && es.failCount === 22, es);
+  check('TRAILING_WINDOW summary matches the recorded validated result (7 PASS / 4 WARN / 19 FAIL)', ts.passCount === 7 && ts.warnCount === 4 && ts.failCount === 19, ts);
   check('experimentA cohort has the required 30 builds', records.length === 30, records.length);
 }
 

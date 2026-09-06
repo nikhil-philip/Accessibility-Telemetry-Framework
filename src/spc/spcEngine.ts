@@ -19,13 +19,49 @@ const logger = createLogger('SpcEngine');
 // this is cwd-relative, not __dirname-relative).
 const HISTORY_DIR = repoPath('telemetry/history');
 
+export type AnalysisMethod = 'EXPANDING_HISTORY' | 'TRAILING_WINDOW';
+
+/**
+ * Selects the slice of `records` (already chronologically sorted) a caller
+ * should see for `buildNumber` (1-indexed) under the given method.
+ * EXPANDING_HISTORY returns every record up to and including buildNumber;
+ * TRAILING_WINDOW returns only the most recent `windowSize` of them.
+ *
+ * Lives here (rather than in experimentAnalysis.ts, which re-exports it for
+ * backward compatibility) so computeSpcReport()'s own optional `windowSize`
+ * below can reuse it directly without a spcEngine <-> experimentAnalysis
+ * circular import -- experimentAnalysis.ts already imports computeSpcReport
+ * from this module.
+ */
+export function selectHistoryWindow(
+  records: TelemetryRecord[],
+  buildNumber: number,
+  method: AnalysisMethod,
+  windowSize: number,
+): TelemetryRecord[] {
+  if (buildNumber < 1 || buildNumber > records.length) {
+    throw new Error(`selectHistoryWindow: buildNumber ${buildNumber} out of range 1..${records.length}`);
+  }
+  if (method === 'EXPANDING_HISTORY') {
+    return records.slice(0, buildNumber);
+  }
+  const start = Math.max(0, buildNumber - windowSize);
+  return records.slice(start, buildNumber);
+}
+
 /**
  * Input: historical build telemetry JSON. Reads every record written by
  * src/telemetry/writer.ts (one TelemetryRecord per build, see
  * src/telemetry/schema.ts / ARCHITECTURE.md Appendix A) and returns them
  * sorted oldest-first -- the order every calculation below assumes.
+ *
+ * `windowSize`, if given, trims the result to the most recent `windowSize`
+ * records after sorting -- e.g. so a CI caller need not hold the entire
+ * on-disk history in memory just to hand it straight to a windowed
+ * computeSpcReport() call. Omitted (the default) returns the full history,
+ * unchanged from this function's original behavior.
  */
-export function loadTelemetryHistory(dir: string = HISTORY_DIR): TelemetryRecord[] {
+export function loadTelemetryHistory(dir: string = HISTORY_DIR, windowSize?: number): TelemetryRecord[] {
   if (!fs.existsSync(dir)) return [];
 
   const files = fs.readdirSync(dir).filter((f) => f.endsWith('.json'));
@@ -40,7 +76,8 @@ export function loadTelemetryHistory(dir: string = HISTORY_DIR): TelemetryRecord
     }
   }
 
-  return records.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  const sorted = records.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  return windowSize !== undefined && sorted.length > 0 ? selectHistoryWindow(sorted, sorted.length, 'TRAILING_WINDOW', windowSize) : sorted;
 }
 
 function toDataPoints(records: TelemetryRecord[]): DataPoint[] {
@@ -99,9 +136,27 @@ function insufficientDataReport(sampleSize: number, points: DataPoint[]): SpcRep
  * needs 15 points, for instance) -- with fewer points those rules simply
  * report `triggered: false`, which is the statistically correct answer
  * ("not enough evidence yet"), not an error condition.
+ *
+ * `options.windowSize`, if given, restricts the chart and every detector
+ * below to the most recent `windowSize` records (via selectHistoryWindow())
+ * -- i.e. a rolling/trailing baseline instead of the full expanding
+ * history. Left undefined (the default), behavior is unchanged from
+ * before this option existed: unbounded, expanding history. The production
+ * CI gate path opts into a 25-build trailing window via
+ * DEFAULT_GATE_POLICY.spcOptions (gates/gatePolicies.ts); this function
+ * itself defaults to unbounded so existing unwindowed callers (the
+ * dashboard's full-history production chart, experimentAnalysis.ts's
+ * EXPANDING_HISTORY method, and every full-cohort sanity check in
+ * scripts/verify-*.ts) are unaffected.
  */
 export function computeSpcReport(records: TelemetryRecord[], options: SpcEngineOptions = {}): SpcReport {
-  const points = toDataPoints(records).sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  const sortedRecords = [...records].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  const windowedRecords =
+    options.windowSize !== undefined && sortedRecords.length > 0
+      ? selectHistoryWindow(sortedRecords, sortedRecords.length, 'TRAILING_WINDOW', options.windowSize)
+      : sortedRecords;
+
+  const points = toDataPoints(windowedRecords);
 
   if (points.length < 2) {
     return insufficientDataReport(points.length, points);
@@ -127,6 +182,12 @@ export function computeSpcReport(records: TelemetryRecord[], options: SpcEngineO
   const anyRuleTriggered = (rules: RuleEvaluation[]) => rules.some((r) => r.triggered);
   const outOfControl = anyRuleTriggered(westernElectric) || anyRuleTriggered(nelson);
 
+  // Drift/trend only mark the process DRIFTING when the detected direction
+  // is actually WORSENING -- an IMPROVING drift or trend (a genuine, sustained
+  // reduction in defect score) must not read as instability on the summary.
+  const worseningDrift = drift.detected && drift.direction === 'WORSENING';
+  const worseningTrend = trend.detected && trend.direction === 'WORSENING';
+
   const summary: SpcSummary = {
     processState: outOfControl ? 'OUT_OF_CONTROL' : 'IN_CONTROL',
     uclViolation,
@@ -136,7 +197,7 @@ export function computeSpcReport(records: TelemetryRecord[], options: SpcEngineO
       ? 'REGRESSED'
       : outOfControl
         ? 'OUT_OF_CONTROL'
-        : drift.detected || trend.detected
+        : worseningDrift || worseningTrend
           ? 'DRIFTING'
           : 'STABLE',
   };
