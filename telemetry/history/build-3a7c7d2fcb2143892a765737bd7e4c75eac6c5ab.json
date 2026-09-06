@@ -1,0 +1,64 @@
+{
+  "buildId": "local-1788677657773",
+  "commitSha": "3a7c7d2fcb2143892a765737bd7e4c75eac6c5ab",
+  "branch": "main",
+  "triggeredBy": "manual",
+  "timestamp": "2026-09-06T06:54:18.068Z",
+  "wcagLevel": "AA",
+  "pagesScanned": 8,
+  "violationsBySeverity": {
+    "critical": 1,
+    "serious": 4,
+    "moderate": 0,
+    "minor": 2
+  },
+  "violationsByRule": [
+    {
+      "ruleId": "target-size",
+      "impact": "serious",
+      "wcagCriteria": [
+        "wcag22aa",
+        "wcag258"
+      ],
+      "occurrences": 3,
+      "pages": [
+        "Product Listing"
+      ]
+    },
+    {
+      "ruleId": "image-redundant-alt",
+      "impact": "minor",
+      "wcagCriteria": [],
+      "occurrences": 2,
+      "pages": [
+        "Shopping Cart"
+      ]
+    },
+    {
+      "ruleId": "frame-title",
+      "impact": "serious",
+      "wcagCriteria": [
+        "wcag2a",
+        "wcag412"
+      ],
+      "occurrences": 1,
+      "pages": [
+        "Contact Us"
+      ]
+    },
+    {
+      "ruleId": "image-alt",
+      "impact": "critical",
+      "wcagCriteria": [
+        "wcag2a",
+        "wcag111"
+      ],
+      "occurrences": 1,
+      "pages": [
+        "Product Listing"
+      ]
+    }
+  ],
+  "defectScore": 32,
+  "totalNodesFailed": 7
+}

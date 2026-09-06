@@ -1,0 +1,64 @@
+{
+  "buildId": "local-1788197215656",
+  "commitSha": "cc5da0ede4b06879435769f680b975f95ef93aa9",
+  "branch": "main",
+  "triggeredBy": "manual",
+  "timestamp": "2026-08-31T17:26:56.856Z",
+  "wcagLevel": "AA",
+  "pagesScanned": 8,
+  "violationsBySeverity": {
+    "critical": 1,
+    "serious": 4,
+    "moderate": 0,
+    "minor": 2
+  },
+  "violationsByRule": [
+    {
+      "ruleId": "target-size",
+      "impact": "serious",
+      "wcagCriteria": [
+        "wcag22aa",
+        "wcag258"
+      ],
+      "occurrences": 3,
+      "pages": [
+        "Product Listing"
+      ]
+    },
+    {
+      "ruleId": "image-redundant-alt",
+      "impact": "minor",
+      "wcagCriteria": [],
+      "occurrences": 2,
+      "pages": [
+        "Shopping Cart"
+      ]
+    },
+    {
+      "ruleId": "image-alt",
+      "impact": "critical",
+      "wcagCriteria": [
+        "wcag2a",
+        "wcag111"
+      ],
+      "occurrences": 1,
+      "pages": [
+        "Product Listing"
+      ]
+    },
+    {
+      "ruleId": "frame-title",
+      "impact": "serious",
+      "wcagCriteria": [
+        "wcag2a",
+        "wcag412"
+      ],
+      "occurrences": 1,
+      "pages": [
+        "Contact Us"
+      ]
+    }
+  ],
+  "defectScore": 32,
+  "totalNodesFailed": 7
+}
