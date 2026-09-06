@@ -164,6 +164,11 @@ export function computeSpcReport(records: TelemetryRecord[], options: SpcEngineO
 
   const chart = computeControlChart(points);
   const values = chart.individuals.map((p) => p.value);
+  // Same eligible subsequence controlChart.ts uses for the baseline/limits
+  // (special-cause-classified points removed, gaps closed up -- not
+  // replaced with a placeholder) -- see detectDrift's call below for why
+  // CUSUM specifically needs this and the other detectors don't.
+  const eligibleValues = chart.individuals.filter((p) => !p.specialCause).map((p) => p.value);
 
   const westernElectric = evaluateWesternElectricRules(values, chart.centerLine, chart.sigma);
   const nelson = evaluateNelsonRules(values, chart.centerLine, chart.sigma);
@@ -173,14 +178,31 @@ export function computeSpcReport(records: TelemetryRecord[], options: SpcEngineO
     minWindow: options.trendMinWindow,
   });
   const regressionSpike = detectRegressionSpike(values, chart.movingRanges, chart.uclMr);
-  const drift = detectDrift(values, chart.centerLine, chart.sigma);
+  /**
+   * CUSUM has no forgetting window (unlike the WECO/Nelson pattern tests,
+   * which only ever look at the last few points, or the trend detector's
+   * bounded regression window) -- once a single extreme value pushes the
+   * accumulator up, it can take arbitrarily many future builds to unwind,
+   * even though every one of those builds is perfectly in control. A known,
+   * already-investigated special-cause value is excluded from the baseline
+   * for exactly this reason (controlChart.ts) -- CUSUM needs the same
+   * exclusion, or a single historical special-cause spike would pin
+   * PROCESS_DRIFT to WORSENING indefinitely.
+   */
+  const drift = detectDrift(eligibleValues, chart.centerLine, chart.sigma);
   const capability = analyzeCapability(chart.centerLine, chart.sigma, options.usl);
 
   const latest = values[values.length - 1]!; // non-null: points.length >= 2 was checked above
   const uclViolation = latest > chart.uclX || latest < chart.lclX;
 
-  const anyRuleTriggered = (rules: RuleEvaluation[]) => rules.some((r) => r.triggered);
-  const outOfControl = anyRuleTriggered(westernElectric) || anyRuleTriggered(nelson);
+  // Scoped to the CURRENT build, matching every other summary field
+  // (uclViolation, trendDetected, regressionDetected) and the Quality
+  // Gate's own culminatesAtLatest-scoped checkTriggeredRules() -- a rule
+  // that triggered somewhere earlier in the window but not at the latest
+  // point describes the window's history, not this build's own status, and
+  // must not permanently report the process as OUT_OF_CONTROL.
+  const ruleTriggeredAtLatest = (rules: RuleEvaluation[]) => rules.some((r) => r.triggered && r.culminatesAtLatest);
+  const outOfControl = ruleTriggeredAtLatest(westernElectric) || ruleTriggeredAtLatest(nelson);
 
   // Drift/trend only mark the process DRIFTING when the detected direction
   // is actually WORSENING -- an IMPROVING drift or trend (a genuine, sustained
